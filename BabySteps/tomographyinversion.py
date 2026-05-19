@@ -119,3 +119,4 @@ def DeltaF():
     # Return Δm1 and Δm2
     return x[0], x[1]
 
+print(DeltaF())
