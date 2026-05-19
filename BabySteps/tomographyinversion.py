@@ -27,22 +27,22 @@ eps_m = rho_mantle*0.01
 #Files needed
 
 #1) Interacting Events for +1% variation in the core (ne_c + eps_c) (needed for dg(m)/dm1)
-int_anue_C1  = np.loadtxt("/Data/h_int_anue_cc_0.010_core.txt")
-int_nue_C1   = np.loadtxt("/Data/h_int_nue_cc_0.010_core.txt")
-int_anumu_C1 = np.loadtxt("/Data/h_int_anumu_cc_0.010_core.txt")
-int_numu_C1  = np.loadtxt("/Data/h_int_numu_cc_0.010_core.txt")
+int_anue_C1  = np.loadtxt("Data/h_int_anue_cc_0.010_core.txt")
+int_nue_C1   = np.loadtxt("Data/h_int_nue_cc_0.010_core.txt")
+int_anumu_C1 = np.loadtxt("Data/h_int_anumu_cc_0.010_core.txt")
+int_numu_C1  = np.loadtxt("Data/h_int_numu_cc_0.010_core.txt")
 
 #2) Interacting Events for +1% variation in the mantle (ne_m + eps_m) (needed for dg(m)/dm2)
-int_anue_M1  = np.loadtxt("/Data/h_int_anue_cc_0.010_mantle.txt")
-int_nue_M1   = np.loadtxt("/Data/h_int_nue_cc_0.010_mantle.txt")
-int_anumu_M1 = np.loadtxt("/Data/h_int_anumu_cc_0.010_mantle.txt")
-int_numu_M1  = np.loadtxt("/Data/h_int_numu_cc_0.010_mantle.txt")
+int_anue_M1  = np.loadtxt("Data/h_int_anue_cc_0.010_mantle.txt")
+int_nue_M1   = np.loadtxt("Data/h_int_nue_cc_0.010_mantle.txt")
+int_anumu_M1 = np.loadtxt("Data/h_int_anumu_cc_0.010_mantle.txt")
+int_numu_M1  = np.loadtxt("Data/h_int_numu_cc_0.010_mantle.txt")
 
 #3) PREM interacting events (needed for g(m), dg(m)/dm1 and dg(m)/dm2)
-int_anue_PREM  = np.loadtxt("/Data/h_int_anue_cc_PREM.txt")
-int_nue_PREM   = np.loadtxt("/Data/h_int_nue_cc_PREM.txt")
-int_anumu_PREM = np.loadtxt("/Data/h_int_anumu_cc_PREM.txt")
-int_numu_PREM  = np.loadtxt("/Data/h_int_numu_cc_PREM.txt")
+int_anue_PREM  = np.loadtxt("Data/h_int_anue_cc_PREM.txt")
+int_nue_PREM   = np.loadtxt("Data/h_int_nue_cc_PREM.txt")
+int_anumu_PREM = np.loadtxt("Data/h_int_anumu_cc_PREM.txt")
+int_numu_PREM  = np.loadtxt("Data/h_int_numu_cc_PREM.txt")
 
 #4) Observed Interacting events (dobs)
 # for now we reuse data from above
