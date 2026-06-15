@@ -16,6 +16,8 @@ x_array = np.logspace(np.log10(1.), np.log10(37.15513054), num=50)
 # cos(theta) array (values of the left bin borders)
 y_array = np.cos(np.linspace(np.arccos(-1.0), np.arccos(-0.03141076), num=50))
 
+# We will use the following notation:
+# m = (m1, m2) = (ne_c, ne_m)
 # these arrays are the ones given by EarthProbe
 
 rho_core   = 11.8504
