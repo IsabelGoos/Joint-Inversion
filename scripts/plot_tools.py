@@ -62,27 +62,44 @@ class SyntheticData:
         histo_rebinned = histo_rebinned.sum(axis=(0, 2))
         return x_rebinned, y_rebinned, histo_rebinned
 
-    def regroup_bins(self, n_pois_norm=25):
+    def regroup_bins_DG(self, n_pois_norm=25):
         """ WORK IN PROGRESSSSSSSSSS
         Rebin a 2D histogram in the sense of arXiv:2408.07015
         """
         x, y, z = self.rebin_histo(ct_rebin=80, enu_rebin=100)
         ct_bins, enu_bins = z.shape
-        histo_rebinned = []
-        x_rebinned = [0]
-        current = np.zeros(ct_bins)
-        for i in len(enu_bins):
-            current += z[:, i]
-            if np.amin(current) >= n_pois_norm:
-                histo_rebinned.append(current)
-                current = np.zeros(ct_bins)
+        # Stores the columns of the regrouped histogram (each column corresponds to a merged energy bin).
+        histo_regrouped = []
+        # Contains the event counts of all cos(theta) bin together, up to the i-th energy bin.
+        counts_ithenu_allcth = np.zeros(ct_bins)
+        # Upper and lower edges of the regrouped energy bins.
+        enu_upper_edges = [0]
+        enu_lower_edges = []
+        # Stores the lower edge of the current regrouped energy bin.
+        enu_lower_edge_current  = 0
+        for i in range(enu_bins):
+            counts_ithenu_allcth += z[:, i]
+            # Regrouping condition
+            if (np.amin(counts_ithenu_allcth) >= n_pois_norm):
+                histo_regrouped.append(counts_ithenu_allcth.copy())
+                enu_upper_edges.append(x[i+1]) # Yael: cambie "i" por "i+1" para que sea el upper bin... Te parece que esta bien? Pensa el caso particular en el que la primera columna ya satisface esta condicion
+                enu_lower_edges.append(enu_lower_edge_current)
+                enu_lower_edge_current = x[i+1] # Yael: cambie "i" por "i+1" para que el upper bin de ahora sea el lower bin la proxima ronda del for-loop
+                counts_ithenu_allcth = np.zeros(ct_bins)
+        # Handle leftover last bin 
+        if (np.amin(counts_ithenu_allcth) > 0) & (np.amin(counts_ithenu_allcth) < n_pois_norm):
+            histo_regrouped.append(counts_ithenu_allcth.copy())
+            enu_lower_edges.append(enu_upper_edges[-1])
+            enu_upper_edges.append(x[-1])
+        # Create the regrouped histogram 
+        x_regrouped = np.array(enu_upper_edges)
+        y_regrouped = np.append(y, 0.0)
+        histo_regrouped = np.column_stack(histo_regrouped)        
+        return x_regrouped, y_regrouped, histo_regrouped
 
-        # handle leftover last bin
-        if np.amin(current) > 0:
-            histo_rebinned.append(current.copy())
-        x_rebinned = x
-        y_rebinned = y
-        return histo_rebinned
+
+
+
 
 
 
