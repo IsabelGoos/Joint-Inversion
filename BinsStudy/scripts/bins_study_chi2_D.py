@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 
 import sys
@@ -19,22 +20,56 @@ files  = ['DUNE-prem64-OutputExpTruth.root',
           'ORCA-prem128-OutputExpTruth.root',
           'PERFECT-prem128-OutputExpTruth.root']
 channels = ['h_tracks_all', 'h_showers_all']
+
 xticks   = [1, 2, 4, 6, 8, 10, 20, 40]
 
-n_ct_bins = 400
+n_ct_bins = 80
+
+chi2_all64_ncth=[] # Array of array storing the resulting 64 chi2 arrays 
+
+n_cths = np.arange(1, n_ct_bins+1) # The bin choices
+
 for file_exp in ['DUNE-prem64-OutputExpTruth.root']: #files:
+
     for channel in ['h_tracks_all']: #channels:
         # create regrouped expected histogram
         histo_exp = SyntheticData(folder_data, file_exp, channel)
-        for i in range(63,64): # modified shell
-            plt.figure()
+
+        for i in range(64): # modified shell
+        
+            chi2_ith_ncth = np.zeros(n_ct_bins) # arrays containg the chi2 of the ith layer for each choice of bin #
+
             for j in range(n_ct_bins): # n_ct_bins
+
                 x_exp, y_exp, z_exp = histo_exp.regroup_bins_DG(n_pois_norm=25, ct_rebin=j+1)
+                
                 file_obs = f"{file_exp.replace('Truth.root','')}Model-0.01-{i}.root"
+                
                 histo_obs = SyntheticData(folder_data, file_obs, channel)
-                chi2 = histo_obs.get_chi2(z_exp, n_pois_norm=25, ct_rebin=j+1)
-                plt.plot(j, chi2, '.k')
-            plt.show()
+
+                chi2_ith_ncth[j]  = histo_obs.get_chi2(z_exp, n_pois_norm=25, ct_rebin=j+1)  # The chi2 of the ith layer for each bin choice j+1
+
+                print(f"nbinscth:{j+1}, Chi2tot:{chi2_ith_ncth[j]}-{chi2_ith_ncth.shape}")
+
+            chi2_all64_ncth.append(chi2_ith_ncth)
+
+chi2_all64_ncth = np.column_stack(chi2_all64_ncth) # Conver into a ntch x 64 matrix
+print(f"Sanity check{chi2_all64_ncth.shape}")
+
+#Store datafor file_exp/channel.
+pd.DataFrame(chi2_all64_ncth).to_csv(f'chi2_all64_nctbins{n_ct_bins}.csv', index=False)
+
+chi2_tot_ntch = chi2_all64_ncth.sum(axis=1) # Row-wise sum of chi2s, summing the contribution of all layers
+print(f"Sanity check{chi2_tot_ntch.shape}")
+
+fig, (ax1, ax2) = plt.subplots(1, 2)  # 1 row, 2 columns
+
+ax1.plot(n_cths, chi2_tot_ntch, '.k')
+ax2.plot(n_cths, chi2_all64_ncth[:, 63], '.k')
+
+plt.show()
+
+
 
 """
 for file in files:
