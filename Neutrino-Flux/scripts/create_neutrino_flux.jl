@@ -48,6 +48,5 @@ function read_neutrino_flux_table(filename::String, nEbins::Int, nθbins::Int, h
     return nuflux_νe, nuflux_νμ, nuflux_antiνe, nuflux_antiνμ
 end
 
-nuflux_νe, nuflux_νμ, nuflux_antiνe, nuflux_antiνμ = read_neutrino_flux_table("nuflux", 100, 100)
 
 
