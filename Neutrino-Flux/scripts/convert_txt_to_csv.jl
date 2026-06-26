@@ -6,6 +6,7 @@ using DataFrames
 
 Checks if a CSV version of `filename` exists in the data directory. 
 If not, reads the TXT version and converts it to CSV without overwriting.
+This is useful for Honda tables which are split using spaces. 
 """
 function convert_txt_to_csv(filename::String)
     
