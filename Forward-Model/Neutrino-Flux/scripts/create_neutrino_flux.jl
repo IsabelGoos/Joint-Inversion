@@ -1,6 +1,9 @@
 using CSV
 using DataFrames
 
+module Neutrino_Flux
+export read_neutrino_flux_table
+
 """
     read_neutrino_flux_table(filename::String, nEbins::Int, nθbins::Int, has_header::Bool)
 
@@ -28,7 +31,7 @@ function read_neutrino_flux_table(filename::String, nEbins::Int, nθbins::Int, h
     csv_path = joinpath(data_dir, "$(filename).csv")
 
     # read the data (has_header=false ensures the first row isn't taken to be the description)
-    raw_df = CSV.read(csv_path, DataFrame, header=false)
+    raw_df = CSV.read(csv_path, DataFrame, header=has_header)
 
    # ensure the number of rows matches the expected grid size
     expected_rows = nEbins * nθbins
@@ -40,13 +43,23 @@ function read_neutrino_flux_table(filename::String, nEbins::Int, nθbins::Int, h
     flux_3d = reshape(Matrix(raw_df), nEbins, nθbins, 5)
  
     # Slice the 3D grid to extract the 2D planes for each specific flavor
-    nuflux_νe     = flux_3d[:, :, 4]
     nuflux_νμ     = flux_3d[:, :, 2]
-    nuflux_antiνe = flux_3d[:, :, 5]
     nuflux_antiνμ = flux_3d[:, :, 3]
+    nuflux_νe     = flux_3d[:, :, 4]
+    nuflux_antiνe = flux_3d[:, :, 5]
 
     return nuflux_νe, nuflux_νμ, nuflux_antiνe, nuflux_antiνμ
 end
 
 
 
+
+function produce_neutrino_flux_table(model::String)
+
+    #if model = "Daemonflux" etc
+
+    return Nothing
+
+end
+
+end
