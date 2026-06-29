@@ -1,8 +1,8 @@
-using CSV
-using DataFrames
-
 module Neutrino_Flux
 export read_neutrino_flux_table
+
+using CSV
+using DataFrames
 
 """
     read_neutrino_flux_table(filename::String, nEbins::Int, nθbins::Int, has_header::Bool)
@@ -49,10 +49,8 @@ function read_neutrino_flux_table(filename::String, nEbins::Int, nθbins::Int, h
     nuflux_antiνe = flux_3d[:, :, 5]
 
     return nuflux_νe, nuflux_νμ, nuflux_antiνe, nuflux_antiνμ
+
 end
-
-
-
 
 function produce_neutrino_flux_table(model::String)
 
