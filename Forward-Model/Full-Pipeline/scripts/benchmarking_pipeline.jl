@@ -9,7 +9,7 @@ energies = logrange(1, 100, 100)
 # read the neutrino-flux table nuflux.csv given in .../Neutrino-Flux/data
 flux_νe, flux_νμ, flux_antiνe, flux_antiνμ = read_neutrino_flux_table("nuflux", 100, 100, false)
 # neutrino fluxes look good
-# (comparing with Figure 3 in 2arXiv:1502.03916,
+# (comparing with Figure 3 in 2arXiv:1502.03916;
 # there are slight differences, especially at low energies, because
 # daemonflux is a bit different from honda)
 p1 = plot(energies, (energies.^3) .* sum(flux_νe,     dims=2) ./ 99, label="νe", 
