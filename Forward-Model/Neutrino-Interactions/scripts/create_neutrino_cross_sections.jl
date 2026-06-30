@@ -82,7 +82,7 @@ function evaluate_cubicspline(s::CubicSpline, x::Float64)
     # distance from the left knot of the current interval
     dx = x - k[i]
 
-    # valuate the cubic polynomial using Horner's method
+    # evaluate the cubic polynomial using Horner's method
     return ((c[1, i] * dx + c[2, i]) * dx + c[3, i]) * dx + c[4, i]
 end
 
