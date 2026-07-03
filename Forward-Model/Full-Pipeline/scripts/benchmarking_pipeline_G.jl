@@ -4,10 +4,10 @@ include("../../Neutrino-Interactions/scripts/create_neutrino_cross_sections.jl")
 using .Neutrino_Cross_Sections
 using Plots
 using Interpolations
-#%%
+
 energies = logrange(1, 100, 100)
 # read the neutrino-flux table nuflux.csv given in .../Neutrino-Flux/data
-flux_νe, flux_νμ, flux_antiνe, flux_antiνμ = Neutrino_Flux.read_neutrino_flux_table("nuflux", 100, 100, false)
+flux_νe, flux_νμ, flux_antiνe, flux_antiνμ = read_neutrino_flux_table("nuflux", 100, 100, false)
 # neutrino fluxes look good
 # (comparing with Figure 3 in 2arXiv:1502.03916;
 # there are slight differences, especially at low energies, because
@@ -21,17 +21,15 @@ plot!(p1, energies, (energies.^3) .* sum(flux_antiνμ, dims=2) ./ 99, label="an
 
 
 
-#%%
-
 energies = logrange(0.1, 100, 100)
 # read the neutrino cross sections from cross_sections.json in .../Neutrino-Interactions/data
-cs_νe_CC, cs_νμ_CC, cs_ντ_CC, cs_antiνe_CC, cs_antiνμ_CC, cs_antiντ_CC = Neutrino_Cross_Sections.read_neutrino_cross_sections_info("cross_sections.json")
-cs_νe_CC     = Neutrino_Cross_Sections.evaluate_cubicspline.(Ref(cs_νe_CC), log10.(energies))
-cs_νμ_CC     = Neutrino_Cross_Sections.evaluate_cubicspline.(Ref(cs_νμ_CC), log10.(energies))
-cs_ντ_CC     = Neutrino_Cross_Sections.evaluate_cubicspline.(Ref(cs_ντ_CC), log10.(energies))
-cs_antiνe_CC = Neutrino_Cross_Sections.evaluate_cubicspline.(Ref(cs_antiνe_CC), log10.(energies))
-cs_antiνμ_CC = Neutrino_Cross_Sections.evaluate_cubicspline.(Ref(cs_antiνμ_CC), log10.(energies))
-cs_antiντ_CC = Neutrino_Cross_Sections.evaluate_cubicspline.(Ref(cs_antiντ_CC), log10.(energies))
+cs_νe_CC, cs_νμ_CC, cs_ντ_CC, cs_antiνe_CC, cs_antiνμ_CC, cs_antiντ_CC = read_neutrino_cross_sections_info("cross_sections.json")
+cs_νe_CC     = evaluate_cubicspline.(Ref(cs_νe_CC), log10.(energies))
+cs_νμ_CC     = evaluate_cubicspline.(Ref(cs_νμ_CC), log10.(energies))
+cs_ντ_CC     = evaluate_cubicspline.(Ref(cs_ντ_CC), log10.(energies))
+cs_antiνe_CC = evaluate_cubicspline.(Ref(cs_antiνe_CC), log10.(energies))
+cs_antiνμ_CC = evaluate_cubicspline.(Ref(cs_antiνμ_CC), log10.(energies))
+cs_antiντ_CC = evaluate_cubicspline.(Ref(cs_antiντ_CC), log10.(energies))
 # cross sections per nucleon look good 
 # (comparing with EarthProbe/ExtModels/xsection/crossSection.root and
 # with Figure 9 (top and bottom) in arXiv:1305.7513)
@@ -43,6 +41,6 @@ plot!(p2, energies, cs_antiνe_CC, label="anti-νe CC")
 plot!(p2, energies, cs_antiνμ_CC, label="anti-νμ CC")
 plot!(p2, energies, cs_antiντ_CC, label="anti-ντ CC")
 
-
-energies = logrange(0.1, 100, 100)
-# read the Neutrino Osicllation Probabilities calculated using Neutrhino in .../Neutrino-Probabilities/data
+# read the Neutrino Oscillation Probabilities from Neurthino.jl.../Oscillation-Probabilities/data
+energies = logrange(0.1, 100, 100) #GeV 
+ 
