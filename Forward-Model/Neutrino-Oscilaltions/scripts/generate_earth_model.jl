@@ -4,7 +4,7 @@ export read_earth_model
 const FLEXOPT_DIR = "/Users/igoos/Desktop/projects/flexOPT" # TO-DO: adapt this path to FlexOPT
 include(joinpath(FLEXOPT_DIR, "src", "batchFiles", "batchStagYY.jl"))
 include(joinpath(FLEXOPT_DIR, "src", "NeurthinoBack", "premFunctions.jl"))
-ParamFile = "../config/testparam.csv" 
+ParamFile = "../config/testparam.csv" # TO-DO: adapt this path, in case it changes 
 include(joinpath(FLEXOPT_DIR, "src", "planet1D.jl"))
 using DIVAnd
 
@@ -13,7 +13,7 @@ using DIVAnd
 
 Loads a 2D staggered-grid mantle density dataset, extends with PREM core density values,
 and interpolates it onto a uniform 13,000 km x 13,000 km Cartesian grid.
-Returns a 2D matrix of the interpolated density field.
+Returns a 2D matrix of the interpolated density field, together with its raw version.
 """
 function load_first_interpolated_density_model(; iTime::Int=3)
 
@@ -43,7 +43,7 @@ function load_first_interpolated_density_model(; iTime::Int=3)
     epsilon2 = 1.0 
     interpolated_density, _ = DIVAndrun(mask, (pm, pn), (xi, yi), (Xnode, Ynode), raw_field, correlationLength, epsilon2)
 
-    return interpolated_density
+    return interpolated_density, raw_field
 
 end
 
