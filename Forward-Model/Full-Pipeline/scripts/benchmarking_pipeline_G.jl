@@ -36,6 +36,15 @@ plot!(p2, bin_centers, 100 .* (sum(flux_antiνμ_interp, dims=2) .- flux_antiν�
 
 
 
+
+
+energies = logrange(0.1, 100, 100)
+# read the neutrino osicllation probabilities calculated using Neutrhino
+
+
+
+
+
 energies = logrange(0.1, 100, 100)
 # read the neutrino cross sections from cross_sections.json in .../Neutrino-Interactions/data
 cs_νe_CC, cs_νμ_CC, cs_ντ_CC, cs_antiνe_CC, cs_antiνμ_CC, cs_antiντ_CC = Neutrino_Cross_Sections.read_neutrino_cross_sections_info("cross_sections.json")
@@ -57,6 +66,3 @@ plot!(p3, energies, cs_antiνμ_CC, label=L"$\bar{\nu}_\mu$ CC")
 plot!(p3, energies, cs_antiντ_CC, label=L"$\bar{\nu}_\tau$ CC")
 
 
-
-energies = logrange(0.1, 100, 100)
-# read the Neutrino Osicllation Probabilities calculated using Neutrhino in .../Neutrino-Probabilities/data

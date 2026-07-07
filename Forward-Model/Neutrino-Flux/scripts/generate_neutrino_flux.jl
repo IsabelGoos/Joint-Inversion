@@ -61,14 +61,20 @@ function read_neutrino_flux_table(filename::String, nEbins::Int, nθbins::Int, h
 end
 
 """
-    intepolate_flux_at_bin_centers(energies::Vector{Float64}, flux::Matrix{Float64}, energies_in_log::Bool)
+    interpolate_flux_at_bin_centers(energies::Vector{Float64}, flux::Matrix{Float64}, energies_in_log::Bool)
 
 Calculates energy bin centers, interpolates the log(flux) at log(energies).
 
+# Arguments
+- `energies`: The bin edges for the energy axis.
+- `flux`: The flux data matrix.
+- `energies_in_log`: If `true`, it assumes the input `energies` are evenly spaced in log-scale 
+  andit calculates geometric centers. Otherwise, it calculates arithmetic centers.
+
 # Returns
-A tuple containing
-1. bin centers
-2. interpolated flux values evaluated at those centers
+A tuple containing:
+1. `bin_centers`: The calculated centers of the energy bins.
+2. `interpolated_flux`: The flux evaluated at the bin centers.
 """
 function interpolate_flux_at_bin_centers(energies::Vector{Float64}, flux::Matrix{Float64}, energies_in_log::Bool)
 
@@ -84,7 +90,7 @@ function interpolate_flux_at_bin_centers(energies::Vector{Float64}, flux::Matrix
 
     # we interpolate log(flux) vs log(energies)
     interpolators = [interpolate(log.(energies), log.(col), FritschCarlsonMonotonicInterpolation()) for col in eachcol(flux)]
-    # evaluate the interpolator at the log of the bin centers, then exponentiate back
+    # evaluate the interpolators at the log of the bin centers, then exponentiate back
     interpolated_flux = exp.(hcat([interp.(log.(bin_centers)) for interp in interpolators]...))   
     return bin_centers, interpolated_flux
 
