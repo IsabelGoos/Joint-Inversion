@@ -13,10 +13,10 @@ and create a neutrino flux array for each neutrino flavor and type.
 The amount of tau neutrinos and antineutrinos is negligible.
 
 # Arguments
-- `filename::String`: The name of the data file (without the `.csv` extension).
-- `nEbins::Int`: The number of energy bins.
-- `nθbins::Int`: The number of zenith angle bins.
-- `has_header::Bool`: Is true if the dataset has a header. 
+- `filename`: The name of the data file (without the `.csv` extension).
+- `nEbins`: The number of energy bins.
+- `nθbins`: The number of zenith angle bins.
+- `has_header`: Is true if the dataset has a header. 
 
 # Returns
 A tuple of four `nEbins` × `nθbins` Matrices representing the flux for:

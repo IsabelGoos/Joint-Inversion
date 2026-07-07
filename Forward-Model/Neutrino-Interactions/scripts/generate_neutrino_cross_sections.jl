@@ -57,8 +57,8 @@ end
 Evaluate the cubic spline `s` at a given coordinate `x`.
 
 # Arguments
-- `s::CubicSpline`: The struct containing the spline knots and coefficients.
-- `x::Float64`: The value at which to evaluate the spline.
+- `s`: The struct containing the spline knots and coefficients.
+- `x`: The value at which to evaluate the spline.
 
 # Returns
 - `Float64`: The interpolated value.
