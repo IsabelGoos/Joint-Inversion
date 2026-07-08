@@ -1,5 +1,12 @@
 const FLEXOPT_DIR = "/Users/igoos/Desktop/projects/flexOPT" # TO-DO: adapt this path to FlexOPT
 include(joinpath(FLEXOPT_DIR, "src", "Neurthino.jl"))
+using .Neurthino
+include(joinpath(FLEXOPT_DIR, "src", "NeurthinoBack", "Matter.jl"))
+include(joinpath(FLEXOPT_DIR, "src", "NeurthinoBack", "premFunctions.jl"))
+using Interpolations
+ParamFile = "../config/testparam.csv" # TO-DO: adapt this path, in case it changes 
+include("generate_earth_model.jl")
+
 
 """
     set_oscillation_parameters(ordering=:normal)
@@ -97,7 +104,7 @@ and doing some manual modifications.
 # Use inverted ordering as the baseline, but modify just the CP-violating phase:
 set_oscillation_parameters(ordering=:inverted, δCP=1.5)
 """
-function set_oscillation_parameters(; ordering::Symbol = :normal,
+function set_oscillation_parameters(; ordering::Symbol=:normal,
     θ12 = nothing,
     θ13 = nothing,
     θ23 = nothing,
@@ -120,167 +127,86 @@ function set_oscillation_parameters(; ordering::Symbol = :normal,
     return osc
 end
 
-
-
-
-
-
-function linkWithNeurthinoPREM_YD(cos_θ,energies)
-  
-    paths = PREMcreationPaths(n_vectors, zposition)
-    matprobs2 = Neurthino.Pνν(osc, energies, paths)
-    matprobs2anti = Neurthino.Pνν(osc, energies, paths,anti=true)
-    return matprobs2, matprobs2anti
-end
-
 """
-    generate_oscillation_probabilitiese(filename::String, nEbins::Int, nθbins::Int, has_header::Bool)
+    produce_neutrino_oscillation_probabilities(minX, maxX, nX, n_angles, n_pts, zposition; kwargs...)
 
-Read a neutrino flux CSV file from the `../data` directory 
-and create a neutrino flux array for each neutrino flavor and type.
-The amount of tau neutrinos and antineutrinos is negligible.
+Generate neutrino and anti-neutrino oscillation probabilities across a 2D interpolated 
+Earth density model for a range of log-spaced energies.
 
-# Arguments
-- `filename::String`: The name of the data file (without the `.csv` extension).
-- `nEbins::Int`: The number of energy bins.
-- `nθbins::Int`: The number of zenith angle bins.
-- `has_header::Bool`: Is true if the dataset has a header. 
+### Arguments:
+- `minX`, `maxX`: Spatial bounds of the Cartesian model grid (in meters).
+- `nX`: Number of grid nodes along the X axis.
+- `n_angles`: Number of baseline trajectories (vectors) radiating from the detector.
+- `n_pts`: Number of sampling points along each baseline trajectory.
+- `zposition`: Depth of the detector below the Earth's surface (in meters).
 
-# Returns
-A tuple of four `nEbins` × `nθbins` Matrices representing the flux for:
-1. `νe` - Electron neutrino
-2. `νμ` - Muon neutrino
-3. `antiνe` - Electron antineutrino
-4. `antiνμ` - Muon antineutrino
+### Optional Keyword Arguments:
+- `ordering`: Subtype framework (`:normal` or `:inverted`).
+- `energy_min`, `energy_max`: Range boundaries for the neutrino energy spectrum (in GeV).
+- `n_energies`: Total number of log-spaced energy bins.
+
+### Returns:
+- `osc_probs_nu`: 4D array of probabilities for neutrinos.
+- `osc_probs_antinu`: 4D array of probabilities for anti-neutrinos.
 """
-function generate_oscillation_probabilities(energies)
+function produce_neutrino_oscillation_probabilities(
+    minX, maxX, nX, n_angles, n_pts, zposition;
+    ordering::Symbol = :normal,
+    energy_min = 1.0,
+    energy_max = 100.0,
+    n_energies = 100)
 
-    cos_θ    = range(-1, 0, length = n_vectors)   # matches path count
+    # load  Earth density model
+    interpolated_density, _ = Earth_Model.load_first_interpolated_density_model(minX, maxX, nX)
     
-    #energies, probs, paths=linkWithNeurthino()
-    #export energies, probs, paths
-    println("linkWithNeurthinoPREM works")
-    load_first_interpolated_density_model()
-    probs2, probs2anti = linkWithNeurthinoPREM_YD(cos_θ,energies)
+    # calculate spatial resolution 
+    dR = (maxX - minX) / (nX - 1)
+    
+    # create neutrino paths
+    paths = PREMcreationPaths(interpolated_density, n_angles, n_pts, zposition, dR)
 
-    return probs2, probs2anti 
+    # set oscillation parameters
+    osc = set_oscillation_parameters(ordering=ordering)
+    
+    # generate log-spaced energy vector 
+    log_min = log10(energy_min)
+    log_max = log10(energy_max)
+    energies = 10 .^ range(log_min, log_max, length=n_energies)
+
+    # compute neutrino oscillations 
+    osc_probs_nu = Neurthino.Pνν(osc, energies, paths)
+    osc_probs_antinu = Neurthino.Pνν(osc, energies, paths, anti=true)
+    
+    return osc_probs_nu, osc_probs_antinu
+end
+
+
+
+
+
+
+
+
+
+function produce_neutrino_oscillation_probabilities(minX, maxX, nX, n_angles, n_pts, zposition)
+    interpolated_density, _ = Earth_Model.load_first_interpolated_density_model(minX, maxX, nX)
+    
+    # the smallest grid interval in X
+    dR = (maxX-minX)/(nX-1)
+    paths = PREMcreationPaths(interpolated_density, n_angles, n_pts, zposition, dR)
+
+    osc=set_oscillation_parameters()
+    energies = logrange(1, 100, 100)
+    energies = collect(energies)
+    osc_probs_nu     = Neurthino.Pνν(osc, energies, paths)
+    osc_probs_antinu = Neurthino.Pνν(osc, energies, paths,anti=true)
+    
+    return osc_probs_nu, osc_probs_antinu
 
 end
 
-#PREMlineDensityElectron2D(fi, n_pts, iTime, detector,source, colorname, ax1, dR)
-#import .Neurthino
-#using Neurthino: Electron, Muon, Tau
-
-
-#module Neutrino_Oscillations
-#export generate_oscillation_probabilities
-
-#using DIVAnd: DIVAnd_rectdom, DIVAndrun
-#using Interpolations
-#using DelimitedFiles
-#using CairoMakie
-#using DIVAnd
-#using Colors
-#using DelimitedFiles
-#using JSON
-#using FilePathsBase
-
-###
-###import .Neurthino
-###using Neurthino: Electron, Muon, Tau
-
-#ParamFile = "../config/testparam.csv" 
-###include(joinpath(FLEXOPT_DIR, "src", "planet1D.jl"))
-###using .planet1D
-#using .DSM1D (?) Why is DSM1D relevant here?
-
-###include(joinpath(FLEXOPT_DIR, "src","batchFiles", "batchUseful.jl"))
-###include(joinpath(FLEXOPT_DIR, "src","batchFiles", "batchStagYY.jl"))
-###include(joinpath(FLEXOPT_DIR, "src", "Neurthino", "NeurthinoRelated.jl"))
-###include(joinpath(FLEXOPT_DIR, "src", "NeurthinoBack", "usefulFunctionsToPlot.jl"))
-###include(joinpath(FLEXOPT_DIR, "src", "NeurthinoBack", "premFunctions.jl"))
-
-# The following variables are taken from bare main, they should be passed as arguments in
-# the functions within LinkWithNeurthinoPREM_YD
-
-
-#### Cartesian grids and interpolation
-###minX,maxX,nX = -6500e3, 6500e3, 521
-###minY,maxY,nY = minX,maxX,nX
-###minZ,maxZ,nZ = minX,maxX,nX
-###dR = (maxX-minX)/(nX-1) # the interval in X, which we suppose to be the smallest grid interval
-
-###correlationLength=(20e3,20e3,20e2) # not yet fully understood this for DIV interpolation
-
-###epsilon2 =1.;
-
-###nZ=1
-###minZ=0.0
-###maxZ=0.0
-###tmpX=correlationLength[1]
-###tmpY=correlationLength[2]
-###correlationLength=(tmpX,tmpY)
-
-###mask,(pm,pn),(xi,yi) = DIVAnd_rectdom(range(minX,stop=maxX,length=nX),
-   ###                                     range(minY,stop=maxY,length=nY));
-  
-###iTime      = 2
-###n_pts      = 100
-###n_vectors  = 100      # ← changed
-
-###zposition  = 2.5e3
-
-###dir=joinpath(FLEXOPT_DIR, "op_old_full_mars_2025")
-###rhoFiles=myListDir(dir; pattern=r"test_rho\d");
-###compositionFiles=myListDir(dir; pattern=r"test_c\d");
-###temperatureFiles=myListDir(dir; pattern=r"test_t\d");
-###wtrFiles=myListDir(dir; pattern=r"test_wtr\d");
-
-###rhoFiles = filter(f -> !occursin(r"/\._", f), rhoFiles) #if op_old_full_mars_2025
-
-
-
-    #= Neurthino tests
-
-    function creationPaths(n_vectors, zposition)
-
-        densities_list, sections_list = vectorsFromDetector(n_vectors, zposition) 
-        paths = Vector{Path}(undef, n_vectors)  
-
-        for i in eachindex(paths)
-            paths[i]= Path(densities_list[i],sections_list[i])
-        end
-
-        return paths
-    end
-    =#
-
-
-#end 
-
-
-
-  # path to flexOPT directory -> TO-DO: adapt this path to FlexOPT
-    #include(joinpath(FLEXOPT_DIR, "src", "batchFiles",    "batchUseful.jl"))
-    #include(joinpath(FLEXOPT_DIR, "src", "batchFiles",    "batchStagYY.jl"))
-    #include(joinpath(FLEXOPT_DIR, "src", "Neurthino",     "NeurthinoRelated.jl"))
-    #include(joinpath(FLEXOPT_DIR, "src", "NeurthinoBack", "usefulFunctionsToPlot.jl"))
-    #include(joinpath(FLEXOPT_DIR, "src", "NeurthinoBack", "premFunctions.jl"))
-    #dir=joinpath(FLEXOPT_DIR, "op_old_full_mars_2025")
-    #rhoFiles=myListDir(dir; pattern=r"test_rho\d");
-    #compositionFiles=myListDir(dir; pattern=r"test_c\d");
-    #temperatureFiles=myListDir(dir; pattern=r"test_t\d");
-    #wtrFiles=myListDir(dir; pattern=r"test_wtr\d");
-    #rhoFiles = filter(f -> !occursin(r"/\._", f), rhoFiles)
 
 
 
 
-       # number of paths
-    n_paths   = 100   
-    # number of points on each path
-    n_pts     = 100
-    # depth of the detector
-    zposition = 2.5e3
-dR = (maxX-minX)/(nX-1) # the smallest grid interval in X
-#fieldname = "rho"
+
