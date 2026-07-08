@@ -1,59 +1,129 @@
 const FLEXOPT_DIR = "/Users/igoos/Desktop/projects/flexOPT" # TO-DO: adapt this path to FlexOPT
 include(joinpath(FLEXOPT_DIR, "src", "Neurthino.jl"))
 
-Neurthino.setθ!(osc, 1=>2, 0.59)
-Neurthino.setθ!(osc, 1=>3, 0.15)
-Neurthino.setθ!(osc, 2=>3, 0.84)
-Neurthino.setδ!(osc, 1=>3, 3.86)
-Neurthino.setΔm²!(osc, 2=>3, -2.523e-3)
-Neurthino.setΔm²!(osc, 1=>2, -7.39e-5)
-
 """
     set_oscillation_parameters(ordering=:normal)
 
-Initializes a 3-flavor neutrino oscillation object 
-using the latest global best-fit values from NuFIT v6.1.
+Initializes a 3-flavor neutrino oscillation object using the `Neurthino` framework
+and the latest global best-fit values from NuFIT v6.1.
 Accepts either `:normal` or `:inverted` for the `ordering` keyword.
+
+### Examples:
+set_oscillation_parameters()
+set_oscillation_parameters(:inverted)
 """
-function set_oscillation_parameters(; ordering::Symbol=:normal)
+function set_oscillation_parameters(ordering::Symbol=:normal)
  
     # initialize a 3-flavor oscillation object
     osc = Neurthino.OscillationParameters(3)
     
+    # NuFIT v6.1 normal ordering with SK atmospheric data
     if ordering === :normal
-        # --- NuFIT v6.1 Normal Ordering (Best Fit) ---
-        # Mixing angles (converted to radians)
-        Neurthino.setθ!(osc, 1=>2, 0.588)   # θ12 ≈ 33.68°
-        Neurthino.setθ!(osc, 1=>3, 0.149)   # θ13 ≈ 8.56°
-        Neurthino.setθ!(osc, 2=>3, 0.756)   # θ23 ≈ 43.3° (with SK-atm data)
-        
+        # mixing angles (radians)
+        Neurthino.setθ!(osc, 1=>2, 0.589)   # θ12 ≈ 33.76°
+        Neurthino.setθ!(osc, 1=>3, 0.150)   # θ13 ≈ 8.62°
+        Neurthino.setθ!(osc, 2=>3, 0.756)   # θ23 ≈ 43.29° 
         # CP-violating phase (radians)
         Neurthino.setδ!(osc, 1=>3, 3.700)   # δCP ≈ 212°
-        
         # Mass-squared splittings (eV²)
-        Neurthino.setΔm²!(osc, 1=>2,  7.49e-5)   # Δm²21
-        Neurthino.setΔm²!(osc, 2=>3,  2.513e-3)  # Δm²31
+        Neurthino.setΔm²!(osc, 1=>2, 7.537e-5)   
+        Neurthino.setΔm²!(osc, 2=>3, 2.511e-3)  
         
     elseif ordering === :inverted
-        # --- NuFIT v6.1 Inverted Ordering ---
-        # Mixing angles (converted to radians)
-        Neurthino.setθ!(osc, 1=>2, 0.588)   # θ12 ≈ 33.68°
-        Neurthino.setθ!(osc, 1=>3, 0.150)   # θ13 ≈ 8.59°
-        Neurthino.setθ!(osc, 2=>3, 0.836)   # θ23 ≈ 47.9° 
-        
+        # Mixing angles (radians)
+        Neurthino.setθ!(osc, 1=>2, 0.589)   # θ12 ≈ 33.76°
+        Neurthino.setθ!(osc, 1=>3, 0.151)   # θ13 ≈ 8.65°
+        Neurthino.setθ!(osc, 2=>3, 0.836)   # θ23 ≈ 47.90° 
         # CP-violating phase (radians)
         Neurthino.setδ!(osc, 1=>3, 4.782)   # δCP ≈ 274°
-        
         # Mass-squared splittings (eV²)
-        Neurthino.setΔm²!(osc, 1=>2,  7.49e-5)   # Δm²21
-        Neurthino.setΔm²!(osc, 2=>3, -2.484e-3)  # Δm²32 (Negative for IO)
+        Neurthino.setΔm²!(osc, 1=>2,  7.537e-5)  
+        Neurthino.setΔm²!(osc, 2=>3, -2.483e-3) 
         
     else
         error("Unknown mass ordering: :\$ordering. Use :normal or :inverted.")
+
     end
     
     return osc
 end
+
+"""
+    set_oscillation_parameters(θ12, θ13, θ23, δCP, m12, m23)
+
+Initializes a 3-flavor neutrino oscillation object using the `Neurthino` framework
+and user-defined oscillation parameters.
+
+### Note on units:
+* Mixing angles (`θ12`, `θ13`, `θ23`) & CP-violating phase (`δCP`): must be provided in degrees. 
+* Mass-squared splittings (`m12`, `m23`): must be provided in eV^2.
+
+### Example:
+set_oscillation_parameters(34.0, 9.0, 43.0, 212.0, 7.4e-5, 2.5e-3)
+"""
+function set_oscillation_parameters(θ12, θ13, θ23, δCP, m12, m23)
+ 
+    # initialize a 3-flavor oscillation object
+    osc = Neurthino.OscillationParameters(3)
+
+    # mixing angles (radians)
+    Neurthino.setθ!(osc, 1=>2, θ12*pi/180)   
+    Neurthino.setθ!(osc, 1=>3, θ13*pi/180)   
+    Neurthino.setθ!(osc, 2=>3, θ23*pi/180)  
+    # CP-violating phase (radians)
+    Neurthino.setδ!(osc, 1=>3, δCP)  
+    # Mass-squared splittings (eV²)
+    Neurthino.setΔm²!(osc, 1=>2, m12)   
+    Neurthino.setΔm²!(osc, 2=>3, m23)  
+
+    return osc
+end
+
+"""
+    set_oscillation_parameters(; ordering=:normal, kwargs...)
+
+Configure a 3-flavor neutrino oscillation object using default oscillation parameters
+and doing some manual modifications.
+
+### Arguments:
+* `ordering::Symbol`: The baseline mass ordering. Options are `:normal` (default) or `:inverted`.
+
+### Keyword arguments (optional modifications):
+* `θ12`, `θ13`, `θ23`: in degrees.
+* `δCP`: CP-violating phase in degrees.
+* `m12`, `m23`: Mass-squared splittings in eV^2.
+
+### Example:
+# Use inverted ordering as the baseline, but modify just the CP-violating phase:
+set_oscillation_parameters(ordering=:inverted, δCP=1.5)
+"""
+function set_oscillation_parameters(; ordering::Symbol = :normal,
+    θ12 = nothing,
+    θ13 = nothing,
+    θ23 = nothing,
+    δCP = nothing,
+    m12 = nothing,
+    m23 = nothing)
+
+    # initialize a 3-flavor oscillation object 
+    # and assign it the oscillation parameters of the chosen ordering
+    osc = set_oscillation_parameters(ordering)
+
+    # modify the parameters of interest
+    if !isnothing(θ12) Neurthino.setθ!(osc, 1=>2, θ12*pi/180) end
+    if !isnothing(θ13) Neurthino.setθ!(osc, 1=>3, θ13*pi/180) end 
+    if !isnothing(θ23) Neurthino.setθ!(osc, 2=>3, θ23*pi/180) end 
+    if !isnothing(δCP) Neurthino.setδ!(osc, 1=>3, δCP) end 
+    if !isnothing(m12) Neurthino.setΔm²!(osc, 1=>2, m12) end
+    if !isnothing(m23) Neurthino.setΔm²!(osc, 2=>3, m23) end 
+
+    return osc
+end
+
+
+
+
+
 
 function linkWithNeurthinoPREM_YD(cos_θ,energies)
   
@@ -97,9 +167,7 @@ function generate_oscillation_probabilities(energies)
 
 end
 
-
 #PREMlineDensityElectron2D(fi, n_pts, iTime, detector,source, colorname, ax1, dR)
-
 #import .Neurthino
 #using Neurthino: Electron, Muon, Tau
 
