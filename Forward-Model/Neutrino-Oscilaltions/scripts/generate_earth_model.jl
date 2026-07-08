@@ -1,5 +1,5 @@
 module Earth_Model
-export read_earth_model
+export load_first_interpolated_density_model
 
 const FLEXOPT_DIR = "/Users/igoos/Desktop/projects/flexOPT" # TO-DO: adapt this path to FlexOPT
 include(joinpath(FLEXOPT_DIR, "src", "batchFiles", "batchStagYY.jl"))
@@ -12,14 +12,14 @@ using DIVAnd
     load_first_interpolated_density_model(; iTime=3)
 
 Loads a 2D staggered-grid mantle density dataset, extends with PREM core density values,
-and interpolates it onto a uniform 13,000 km x 13,000 km Cartesian grid.
+and interpolates it onto a uniform (maxX-minX)km x (maxX-minX)km Cartesian grid
+(with nX resolution nodes).
 Returns a 2D matrix of the interpolated density field, together with its raw version.
 """
-function load_first_interpolated_density_model(; iTime::Int=3)
+function load_first_interpolated_density_model(minX=-6500e3, maxX=6500e3, nX=521; iTime::Int=3)
 
     # define the 2D cartesian grid
-    # create a 13,000 km square grid centered at (0,0) with 521 resolution nodes
-    minX, maxX, nX = -6500e3, 6500e3, 521 # m, m, number
+    # create a (maxX-minX)km x (maxX-minX)km grid centered at (0,0) with nX resolution nodes
     minY, maxY, nY = minX, maxX, nX
 
     # calculate grid spacing resolution (distance between nodes)
