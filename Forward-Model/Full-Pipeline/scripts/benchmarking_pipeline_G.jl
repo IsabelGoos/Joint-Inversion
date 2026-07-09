@@ -38,11 +38,21 @@ plot!(p2, bin_centers, 100 .* (sum(flux_νμ_interp,     dims=2) .- flux_νμ_or
 plot!(p2, bin_centers, 100 .* (sum(flux_antiνe_interp, dims=2) .- flux_antiνe_original) ./ flux_antiνe_original, label=L"$\bar{\nu}_e$") 
 plot!(p2, bin_centers, 100 .* (sum(flux_antiνμ_interp, dims=2) .- flux_antiνμ_original) ./ flux_antiνμ_original, label=L"$\bar{\nu}_\mu$") 
 
+# This is what we need to compute the interacting events!:
+# TO-DO: put this computation in the function, no user should be doing this XD
+flux_νe = reverse(flux_νe', dims=1)
+flux_νμ = reverse(flux_νμ', dims=1)
+flux_antiνe = reverse(flux_antiνe', dims=1)
+flux_antiνμ = reverse(flux_antiνμ', dims=1)
 
 
 
 
-# neutrino oscillation probabilities look good, maybe Paνe2aντ deserves some attention 
+
+
+
+# neutrino oscillation probabilities look good
+# TO-DO: Paνe2aντ deserves some attention → do a difference with OscProb!
 minX, maxX, nX = -6500e3, 6500e3, 521
 n_angles  = 100
 n_pts     = 100
@@ -169,24 +179,53 @@ energies = logrange(1, 40, 100)
 ΔE = diff(energies)
 # temporary fix
 push!(ΔE, ΔE[end])
-pushfirst!(ΔE, ΔE[1])
-angles = range(-1, 0, length=100)
-Δθ = diff(angles)[1] 
+#pushfirst!(ΔE, ΔE[1])
+cosθs = range(-1, 0, length=100)
+Δcosθ = diff(cosθs)[1] 
 # data-taking time in seconds, we use a year here
 time  = 365.25 * 24.0 * 60.0 * 60.0 
 # proton mass in kg
 p_m   = 1.67262e-27
 # detector mass in kg
-det_m = 1.0e6
+det_m = 1.0e9 
 # detector exposure in seconds * kg 
 ξ_Det = time * det_m
-
-int_evts_νe     = ((ξ_Det ./ p_m) .* cs_νe_CC     .* energies .* 1.0e-42) .* 2.0 .* π  .* ΔE .* Δθ .* (flux_νe     .* Pνe2νe   .+ flux_νμ     .* Pνμ2νe)
-int_evts_antiνe = ((ξ_Det ./ p_m) .* cs_antiνe_CC .* energies .* 1.0e-42) .* 2.0 .* π  .* ΔE .* Δθ .* (flux_antiνe .* Paνe2aνe .+ flux_antiνμ .* Pνμ2νe)
-heatmap(energies, angles, (energies.^2) .* (int_evts_νe .+ int_evts_antiνe), 
+# Interacting electron neutrino events
+constant = (ξ_Det ./ p_m) .* 1.0e-42        .* 2.0 .* π .* Δcosθ      .*10
+Edeppart = cs_νe_CC .* energies             .* (energies.^2) .*ΔE
+int_evts_νe = constant .* Edeppart' .* (flux_νe .* Pνe2νe .+ flux_νμ .* Pνμ2νe)
+Edeppartanti = cs_antiνe_CC .* energies             .* (energies.^2) .*ΔE
+int_evts_antiνe = constant .* Edeppart' .* (flux_antiνe .* Paνe2aνe .+ flux_antiνμ .* Paνμ2aνe)
+heatmap(energies, cosθs, int_evts_νe+int_evts_antiνe,
+        xscale = :log10,
+        xlabel = "Energy/GeV",
+        ylabel = L"\cos\theta")
+# Interacting tau neutrino events
+Edeppart = cs_ντ_CC .* energies             .* (energies.^2) .*ΔE
+int_evts_ντ = constant .* Edeppart' .* (flux_νe .* Pνe2ντ .+ flux_νμ .* Pνμ2ντ)
+Edeppartanti = cs_antiντ_CC .* energies             .* (energies.^2) .*ΔE
+int_evts_antiντ = constant .* Edeppart' .* (flux_antiνe .* Paνe2aντ .+ flux_antiνμ .* Paνμ2aντ)
+heatmap(energies, cosθs, int_evts_ντ+int_evts_antiντ,
         xscale = :log10,
         xlabel = "Energy/GeV",
         ylabel = L"\cos\theta")
 
 
+
+
+
+
+
+
+
+
+
+
+#matrix = [
+#    1.0  2.0 ;  # Row 1
+#    3.0  4.0    # Row 2
+#]
+#vector = [1.0, 2.0]
+#vector .* matrix
+#vector' .* matrix
 
