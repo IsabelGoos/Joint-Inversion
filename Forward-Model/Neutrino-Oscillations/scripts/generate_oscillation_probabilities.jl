@@ -82,8 +82,8 @@ function set_oscillation_parameters(θ12, θ13, θ23, δCP, m12, m23)
     # CP-violating phase (radians)
     Neurthino.setδ!(osc, 1=>3, δCP)  
     # Mass-squared splittings (eV²)
-    Neurthino.setΔm²!(osc, 1=>2, m12)   
-    Neurthino.setΔm²!(osc, 2=>3, m23)  
+    Neurthino.setΔm²!(osc, 2=>1, m12)   
+    Neurthino.setΔm²!(osc, 3=>2, m23)  
 
     return osc
 end
@@ -123,8 +123,8 @@ function set_oscillation_parameters(; ordering::Symbol=:normal,
     if !isnothing(θ13) Neurthino.setθ!(osc, 1=>3, θ13*pi/180) end 
     if !isnothing(θ23) Neurthino.setθ!(osc, 2=>3, θ23*pi/180) end 
     if !isnothing(δCP) Neurthino.setδ!(osc, 1=>3, δCP) end 
-    if !isnothing(m12) Neurthino.setΔm²!(osc, 1=>2, m12) end
-    if !isnothing(m23) Neurthino.setΔm²!(osc, 2=>3, m23) end 
+    if !isnothing(m12) Neurthino.setΔm²!(osc, 2=>1, m12) end
+    if !isnothing(m23) Neurthino.setΔm²!(osc, 3=>2, m23) end 
 
     return osc
 end
