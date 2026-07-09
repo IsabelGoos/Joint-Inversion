@@ -10,6 +10,7 @@ using Interpolations
 using LaTeXStrings
 
 energies = logrange(1, 100, 100)
+energies = logrange(1, 40, 100)
 # read the neutrino-flux table nuflux.csv given in .../Neutrino-Flux/data
 bin_centers, flux_νe_interp, flux_νμ_interp, flux_antiνe_interp, flux_antiνμ_interp, energies, flux_νe, flux_νμ, flux_antiνe, flux_antiνμ = Neutrino_Flux.read_neutrino_flux_table("nuflux", 100, 100, false)
 
@@ -47,6 +48,7 @@ n_angles  = 100
 n_pts     = 100
 zposition = 2.5e3
 energy_min = 1.0
+energy_max = 100.0
 energy_max = 40.0
 osc_probs_nu, osc_probs_antinu = Neutrino_Oscillations.produce_neutrino_oscillation_probabilities(minX, maxX, nX, n_angles, n_pts, zposition, energy_min=energy_min, energy_max=energy_max)
 # neutrinos, NMO
@@ -138,6 +140,7 @@ final_plot = plot(
 
 
 energies = logrange(0.1, 100, 100)
+energies = logrange(1, 40, 100)
 # read the neutrino cross sections from cross_sections.json in .../Neutrino-Interactions/data
 cs_νe_CC, cs_νμ_CC, cs_ντ_CC, cs_antiνe_CC, cs_antiνμ_CC, cs_antiντ_CC = Neutrino_Cross_Sections.read_neutrino_cross_sections_info("cross_sections.json")
 cs_νe_CC     = Neutrino_Cross_Sections.evaluate_cubicspline.(Ref(cs_νe_CC), log10.(energies))
@@ -156,5 +159,34 @@ plot!(p3, energies, cs_ντ_CC,     label=L"$\nu_\tau$ CC")
 plot!(p3, energies, cs_antiνe_CC, label=L"$\bar{\nu}_e$ CC")
 plot!(p3, energies, cs_antiνμ_CC, label=L"$\bar{\nu}_\mu$ CC")
 plot!(p3, energies, cs_antiντ_CC, label=L"$\bar{\nu}_\tau$ CC")
+
+
+
+
+
+# all together → to get interacting events histograms
+energies = logrange(1, 40, 100)
+ΔE = diff(energies)
+# temporary fix
+push!(ΔE, ΔE[end])
+pushfirst!(ΔE, ΔE[1])
+angles = range(-1, 0, length=100)
+Δθ = diff(angles)[1] 
+# data-taking time in seconds, we use a year here
+time  = 365.25 * 24.0 * 60.0 * 60.0 
+# proton mass in kg
+p_m   = 1.67262e-27
+# detector mass in kg
+det_m = 1.0e6
+# detector exposure in seconds * kg 
+ξ_Det = time * det_m
+
+int_evts_νe     = ((ξ_Det ./ p_m) .* cs_νe_CC     .* energies .* 1.0e-42) .* 2.0 .* π  .* ΔE .* Δθ .* (flux_νe     .* Pνe2νe   .+ flux_νμ     .* Pνμ2νe)
+int_evts_antiνe = ((ξ_Det ./ p_m) .* cs_antiνe_CC .* energies .* 1.0e-42) .* 2.0 .* π  .* ΔE .* Δθ .* (flux_antiνe .* Paνe2aνe .+ flux_antiνμ .* Pνμ2νe)
+heatmap(energies, angles, (energies.^2) .* (int_evts_νe .+ int_evts_antiνe), 
+        xscale = :log10,
+        xlabel = "Energy/GeV",
+        ylabel = L"\cos\theta")
+
 
 
