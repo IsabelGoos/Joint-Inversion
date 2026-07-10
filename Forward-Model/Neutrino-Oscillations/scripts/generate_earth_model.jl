@@ -1,8 +1,12 @@
 module Earth_Model
 export load_first_interpolated_density_model
 
+<<<<<<< HEAD
 #const FLEXOPT_DIR = "/home/ydenizhernandez/flexOPT" # TO-DO: adapt this path to FlexOPT
 const FLEXOPT_DIR = "/home/ydenizhernandez/flexOPT"
+=======
+const FLEXOPT_DIR = "/home/ydenizhernandez/flexOPT" # TO-DO: adapt this path to FlexOPT
+>>>>>>> cc618d5ea77114f0c66677a3e7d8111dadbd3a4a
 include(joinpath(FLEXOPT_DIR, "src", "batchFiles", "batchStagYY.jl"))
 include(joinpath(FLEXOPT_DIR, "src", "NeurthinoBack", "premFunctions.jl"))
 ParamFile = "../config/testparam.csv" # TO-DO: adapt this path, in case it changes 
@@ -36,24 +40,53 @@ function load_first_interpolated_density_model(minX=-6500e3, maxX=6500e3, nX=521
     # read raw Staggered-Grid density data
     data_dir = joinpath(FLEXOPT_DIR, "op_old_full_mars_2025")
     rho_Files = myListDir(data_dir; pattern=r"test_rho\d")
+<<<<<<< HEAD
+=======
+
+>>>>>>> cc618d5ea77114f0c66677a3e7d8111dadbd3a4a
     if isempty(rho_Files)
         error("No test_rho files found in $data_dir")
     end
      
+<<<<<<< HEAD
     # Generate iTime value required for readStagYYFiles
     sort!(rho_Files, by = f -> begin
          m = match(r"test_rho(\d+)", basename(f))
          m === nothing ? -1 : parse(Int, m.captures[1])
+=======
+    # Generate iTime required for readStagYYFiles
+
+    sort!(rho_Files, by = f -> begin
+
+         m=match(r"test_rho(\d+)", basename(f))
+
+         m=== nothing ? -1 : parse(Int, m.captures[1])
+        
+>>>>>>> cc618d5ea77114f0c66677a3e7d8111dadbd3a4a
     end)
 
     #if iTime is not provided by the user
     idx =  isnothing(iTime) ? length(rho_Files) : iTime
+<<<<<<< HEAD
     if idx < 1 || idx > length(rho_Files)
         error("iTime is out of range; found $(length(rho_Files)) test rho file(s) in $data_dir ")
     end
     println("Found $(length(rho_Files)) test rho file(s) in $data_dir; using $(rho_Files[idx]) [iTime = $(idx)] for readStagYYFiles ")
     println("Found $(length(rho_Files)) test_rho file(s):")
     foreach(f -> println("  ", f), rho_Files)
+=======
+
+    if idx < 1 || idx > length(rho_Files)
+        error("iTime is out of range; found $(length(rho_Files)) test rho file(s) in $data_dir ")
+    end
+    
+    println("Found $(length(rho_Files)) test rho file(s) in $data_dir; using $(rho_Files[idx]) [iTime = $(idx)] for readStagYYFiles ")
+
+    println("Found $(length(rho_Files)) test_rho file(s):")
+    foreach(f -> println("  ", f), rho_Files)
+
+
+>>>>>>> cc618d5ea77114f0c66677a3e7d8111dadbd3a4a
     raw_field, Xnode, Ynode, _ = readStagYYFiles(rho_Files[idx])
 
     # extend adding the core density from PREM since the rhoFiles don't have this
