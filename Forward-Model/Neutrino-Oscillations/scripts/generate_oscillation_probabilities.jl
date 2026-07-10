@@ -1,7 +1,7 @@
 module Neutrino_Oscillations
 export set_oscillation_parameters, produce_neutrino_oscillation_probabilities
 
-const FLEXOPT_DIR = "/Users/igoos/Desktop/projects/flexOPT" # TO-DO: adapt this path to FlexOPT
+const FLEXOPT_DIR = "/home/ydenizhernandez/flexOPT" # TO-DO: adapt this path to FlexOPT
 include(joinpath(FLEXOPT_DIR, "src", "Neurthino.jl"))
 using .Neurthino
 include(joinpath(FLEXOPT_DIR, "src", "NeurthinoBack", "Matter.jl"))
