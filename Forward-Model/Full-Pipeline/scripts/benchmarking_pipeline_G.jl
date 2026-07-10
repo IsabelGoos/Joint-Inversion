@@ -1,3 +1,7 @@
+using  Pkg
+const FLEXOPT_DIR = "/home/ydenizhernandez/flexOPT" # TO-DO: adapt this path to FlexOPT
+Pkg.activate(FLEXOPT_DIR)
+
 include("../../Neutrino-Flux/scripts/generate_neutrino_flux.jl")
 using .Neutrino_Flux
 ParamFile = "../config/testparam.csv" # TO-DO: adapt this path, in case it changes 
@@ -7,7 +11,7 @@ include("../../Neutrino-Interactions/scripts/generate_neutrino_cross_sections.jl
 using .Neutrino_Cross_Sections
 using Plots
 using Interpolations
-using LaTeXStrings
+using LaTeXStrings #TO-DO: Add to manifesto &project
 
 energies = logrange(1, 100, 100)
 energies = logrange(1, 40, 100)
@@ -44,12 +48,6 @@ flux_νe = reverse(flux_νe', dims=1)
 flux_νμ = reverse(flux_νμ', dims=1)
 flux_antiνe = reverse(flux_antiνe', dims=1)
 flux_antiνμ = reverse(flux_antiνμ', dims=1)
-
-
-
-
-
-
 
 # neutrino oscillation probabilities look good
 # TO-DO: Paνe2aντ deserves some attention → do a difference with OscProb!
