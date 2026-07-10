@@ -1,12 +1,7 @@
 module Earth_Model
 export load_first_interpolated_density_model
 
-<<<<<<< HEAD
-#const FLEXOPT_DIR = "/home/ydenizhernandez/flexOPT" # TO-DO: adapt this path to FlexOPT
-const FLEXOPT_DIR = "/home/ydenizhernandez/flexOPT"
-=======
-const FLEXOPT_DIR = "/home/ydenizhernandez/flexOPT" # TO-DO: adapt this path to FlexOPT
->>>>>>> cc618d5ea77114f0c66677a3e7d8111dadbd3a4a
+const FLEXOPT_DIR = "/Users/igoos/Desktop/projects/flexOPT" # TO-DO: adapt this path to FlexOPT
 include(joinpath(FLEXOPT_DIR, "src", "batchFiles", "batchStagYY.jl"))
 include(joinpath(FLEXOPT_DIR, "src", "NeurthinoBack", "premFunctions.jl"))
 ParamFile = "../config/testparam.csv" # TO-DO: adapt this path, in case it changes 
@@ -25,7 +20,7 @@ Returns a 2D matrix of the interpolated density field, together with its raw ver
 
 # Developers note: ::Union{Int,Nothing}=nothing Allows a variable to be either Int,or Nothing. Same logic as None in Python or nullptr in C++.
 # In this case iTime can be either specified or skipped 
-function load_first_interpolated_density_model(minX=-6500e3, maxX=6500e3, nX=521; iTime::Union{Int,Nothing}=nothing)
+function load_first_interpolated_density_model(minX=-6500e3, maxX=6500e3, nX=521; iTime::Int=3) #iTime::Union{Int,Nothing}=nothing)
 
     # define the 2D cartesian grid
     # create a (maxX-minX)km x (maxX-minX)km grid centered at (0,0) with nX resolution nodes
@@ -39,7 +34,9 @@ function load_first_interpolated_density_model(minX=-6500e3, maxX=6500e3, nX=521
 
     # read raw Staggered-Grid density data
     data_dir = joinpath(FLEXOPT_DIR, "op_old_full_mars_2025")
-    rho_Files = myListDir(data_dir; pattern=r"test_rho\d")
+    rho_Files = myListDir(data_dir; pattern=r"test_rho\d") 
+    raw_field, Xnode, Ynode, _ = readStagYYFiles(rho_Files[iTime])
+#=
 <<<<<<< HEAD
 =======
 
@@ -87,7 +84,8 @@ function load_first_interpolated_density_model(minX=-6500e3, maxX=6500e3, nX=521
 
 
 >>>>>>> cc618d5ea77114f0c66677a3e7d8111dadbd3a4a
-    raw_field, Xnode, Ynode, _ = readStagYYFiles(rho_Files[idx])
+=#
+    #raw_field, Xnode, Ynode, _ = readStagYYFiles(rho_Files[idx])
 
     # extend adding the core density from PREM since the rhoFiles don't have this
     extendWithρ!(raw_field, Xnode, Ynode, dR, iCheckCoreModel=false)

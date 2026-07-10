@@ -1,6 +1,11 @@
-using  Pkg
-const FLEXOPT_DIR = "/home/ydenizhernandez/flexOPT" # TO-DO: adapt this path to FlexOPT
+#using  Pkg
+#Pkg.activate(FLEXOPT_DIR)
+using DotEnv
+DotEnv.load!()
+const FLEXOPT_DIR = ENV["FLEXOPT_DIR"]
+using Pkg
 Pkg.activate(FLEXOPT_DIR)
+const FLEXOPT_DIR = "/Users/igoos/Desktop/projects/flexOPT" # TO-DO: adapt this path to FlexOPT
 
 include("../../Neutrino-Flux/scripts/generate_neutrino_flux.jl")
 using .Neutrino_Flux

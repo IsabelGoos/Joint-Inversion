@@ -1,8 +1,9 @@
 using  Pkg
 
 #%% Relevant Directories
-const FLEXOPT_DIR = "/home/ydenizhernandez/flexOPT" #Path to flexOPT directory
-const FORWARDMODEL_DIR = "/home/ydenizhernandez/Joint-Inversion/Forward-Model" #Path to Forward-Model directory
+const FLEXOPT_DIR = "/Users/igoos/Desktop/projects/flexOPT" # TO-DO: adapt this path to FlexOPT
+
+const FORWARDMODEL_DIR = "/Users/igoos/Desktop/projects/Joint-Inversion/Forward-Model" # TO-DO> adapt this path
 #cd(FLEXOPT_DIR)
 
 #%% 1. Activate the flexOPT environment
