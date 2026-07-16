@@ -1,9 +1,10 @@
 module Neutrino_Flux
-export read_neutrino_flux_table
+export read_neutrino_flux_table, produce_neutrino_flux
 
 using CSV
 using DataFrames
 using Interpolations
+using PythonCall
 
 """
     read_neutrino_flux_table(filename::String, nEbins::Int, nθbins::Int, has_header::Bool)
@@ -77,7 +78,7 @@ A tuple containing:
 2. `interpolated_flux`: The flux evaluated at the bin centers.
 """
 function interpolate_flux_at_bin_centers(energies::Vector{Float64}, flux::Matrix{Float64}, energies_in_log::Bool)
-
+    
     # create 1D coordinate array for the y axis
     angles_indices = 1.0:size(flux, 2)
 
@@ -96,11 +97,93 @@ function interpolate_flux_at_bin_centers(energies::Vector{Float64}, flux::Matrix
 
 end
 
-function produce_neutrino_flux_table(model::String)
+"""
+    produce_neutrino_flux(bin_centers_arrays; model, flux_mode)
 
-    #if model = "Daemonflux" etc
+Produce the atmospheric neutrino flux for all relevant neutrino types following a given `model`.
 
-    return Nothing
+If the `model` `Daemonflux` is chosen, compute the atmospheric neutrino fluxes at `IceCube` 
+using the Daemonflux model (arXiv:2303.00022).
+`Icecube` is, for the moment, the only location for which upgoing neutrinos are computed (July 2026).
+`use_calibration` is set to true so that the Daemonflux calibration is used.
+If the `model` `Honda` is chosen, fetch the atmospheric neutrino fluxes from 
+<http://www-rccn.icrr.u-tokyo.ac.jp/mhonda/public/nflx2014/index.html> (arXiv:1502.03916).
+Neither model provides tau-neutrino or -antineutrino fluxes since they are negligible.
+
+# Arguments
+- `bin_centers_arrays::Tuple{AbstractArray, AbstractArray}`: a 2-tuple containing the bin centers 
+for energy and cosθ. The bin centers for cosθ have to be given in increasing order.
+- `model`: `Daemonflux` (default) or `Honda`.
+- `flux_mode`: `conventional` or `total` (default). `total` means conventional + prompt (only the 
+conventional componennt is calibrated).
+
+# Returns a 4-tuple with the following matrices in the shape (nθ, nE):
+- `NuMu_flux` 
+- `Nue_flux`
+- `AntiNuMu_flux` 
+- `AntiNue_flux`
+"""
+function produce_neutrino_flux(
+    bin_centers_arrays::Tuple{AbstractArray, AbstractArray}; 
+    model::Symbol=:Daemonflux, 
+    flux_mode::Symbol=:total
+)
+
+    if (model === :Daemonflux)
+
+        # Import and instantiate Python Flux class
+        daemonflux = pyimport("daemonflux")
+        flux = daemonflux.Flux(location="IceCube", 
+                               use_calibration=true, 
+                               debug=1)
+
+        # Read bin centers for energy and cosθ
+        Ebin_centers, cosθbin_centers = bin_centers_arrays
+        # Convert to degrees
+        θbin_centers = string.(rad2deg.(acos.(cosθbin_centers)))
+
+        # Pre-allocate output arrays
+        nE = length(Ebin_centers)
+        nθ = length(θbin_centers)
+        NuMu_flux     = zeros(Float64, nθ, nE)
+        Nue_flux      = zeros(Float64, nθ, nE)
+        AntiNuMu_flux = zeros(Float64, nθ, nE)
+        AntiNue_flux  = zeros(Float64, nθ, nE)
+
+        # Adapt the key names depending on the chosen flux_mode 
+        if flux_mode !== :total && flux_mode !== :conventional
+            error("flux_mode $flux_mode is not a valid option. Use :total or :conventional.")
+        end
+        prefix = flux_mode === :total ? "total_" : ""
+        keys = (
+            numu    = prefix * "numu",
+            nue     = prefix * "nue",
+            anumu   = prefix * "antinumu",
+            anue    = prefix * "antinue" 
+        )
+
+        # Energy scaling
+        E_scaling = 1e4 ./ (Ebin_centers .^ 3)
+        # Fetch raw Daemonflux values
+        for (i, θ) in enumerate(θbin_centers)
+            raw_numu  = pyconvert(Vector{Float64}, flux.flux(Ebin_centers, θ, keys.numu))
+            raw_nue   = pyconvert(Vector{Float64}, flux.flux(Ebin_centers, θ, keys.nue))
+            raw_anumu = pyconvert(Vector{Float64}, flux.flux(Ebin_centers, θ, keys.anumu))
+            raw_anue  = pyconvert(Vector{Float64}, flux.flux(Ebin_centers, θ, keys.anue))
+           # Populate arrays 
+            NuMu_flux[i, :]     .= raw_numu  .* E_scaling
+            Nue_flux[i, :]      .= raw_nue   .* E_scaling
+            AntiNuMu_flux[i, :] .= raw_anumu .* E_scaling
+            AntiNue_flux[i, :]  .= raw_anue  .* E_scaling
+        end
+
+    elseif (model === :Honda)
+        error("model $model is not YET supported - work in progress.")
+    else 
+        error("model $model is not supported. Use :Daemonflux or :Honda.")
+    end
+
+    return NuMu_flux, Nue_flux, AntiNuMu_flux, AntiNue_flux
 
 end
 
