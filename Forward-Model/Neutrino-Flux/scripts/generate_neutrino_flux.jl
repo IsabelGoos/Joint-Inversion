@@ -116,17 +116,22 @@ for energy and cosθ. The bin centers for cosθ have to be given in increasing o
 - `model`: `Daemonflux` (default) or `Honda`.
 - `flux_mode`: `conventional` or `total` (default). `total` means conventional + prompt (only the 
 conventional componennt is calibrated).
+- `return_uncertainties::Bool`: if true, return neutrino flux uncertainties. Default is false. 
 
-# Returns a 4-tuple with the following matrices in the shape (nθ, nE):
+# Returns 
+a 4-tuple (or 8-tuple, if `return_uncertainties::Bool` is true) with the following matrices 
+in the shape (nθ, nE):
 - `NuMu_flux` 
 - `Nue_flux`
 - `AntiNuMu_flux` 
 - `AntiNue_flux`
+(followed by the corresponding uncertanties if `return_uncertainties::Bool` is true, in the same order).
 """
 function produce_neutrino_flux(
     bin_centers_arrays::Tuple{AbstractArray, AbstractArray}; 
     model::Symbol=:Daemonflux, 
-    flux_mode::Symbol=:total
+    flux_mode::Symbol=:total,
+    return_uncertainties::Bool=false
 )
 
     if (model === :Daemonflux)
@@ -149,6 +154,12 @@ function produce_neutrino_flux(
         Nue_flux      = zeros(Float64, nθ, nE)
         AntiNuMu_flux = zeros(Float64, nθ, nE)
         AntiNue_flux  = zeros(Float64, nθ, nE)
+        if return_uncertainties
+            NuMu_flux_err     = zeros(Float64, nθ, nE)
+            Nue_flux_err      = zeros(Float64, nθ, nE)
+            AntiNuMu_flux_err = zeros(Float64, nθ, nE)
+            AntiNue_flux_err  = zeros(Float64, nθ, nE)
+        end
 
         # Adapt the key names depending on the chosen flux_mode 
         if flux_mode !== :total && flux_mode !== :conventional
@@ -166,15 +177,22 @@ function produce_neutrino_flux(
         E_scaling = 1e4 ./ (Ebin_centers .^ 3)
         # Fetch raw Daemonflux values
         for (i, θ) in enumerate(θbin_centers)
+            # flux values
             raw_numu  = pyconvert(Vector{Float64}, flux.flux(Ebin_centers, θ, keys.numu))
             raw_nue   = pyconvert(Vector{Float64}, flux.flux(Ebin_centers, θ, keys.nue))
             raw_anumu = pyconvert(Vector{Float64}, flux.flux(Ebin_centers, θ, keys.anumu))
             raw_anue  = pyconvert(Vector{Float64}, flux.flux(Ebin_centers, θ, keys.anue))
-           # Populate arrays 
             NuMu_flux[i, :]     .= raw_numu  .* E_scaling
             Nue_flux[i, :]      .= raw_nue   .* E_scaling
             AntiNuMu_flux[i, :] .= raw_anumu .* E_scaling
             AntiNue_flux[i, :]  .= raw_anue  .* E_scaling
+            if return_uncertainties
+                # flux uncertainties
+                NuMu_flux_err[i, :]     .= pyconvert(Vector{Float64}, flux.error(Ebin_centers, θ, keys.numu))
+                Nue_flux_err[i, :]      .= pyconvert(Vector{Float64}, flux.error(Ebin_centers, θ, keys.nue))
+                AntiNuMu_flux_err[i, :] .= pyconvert(Vector{Float64}, flux.error(Ebin_centers, θ, keys.anumu))
+                AntiNue_flux_err[i, :]  .= pyconvert(Vector{Float64}, flux.error(Ebin_centers, θ, keys.anue))
+            end
         end
 
     elseif (model === :Honda)
@@ -183,7 +201,12 @@ function produce_neutrino_flux(
         error("model $model is not supported. Use :Daemonflux or :Honda.")
     end
 
-    return NuMu_flux, Nue_flux, AntiNuMu_flux, AntiNue_flux
+    if return_uncertainties
+        return (NuMu_flux,     Nue_flux,     AntiNuMu_flux,     AntiNue_flux), 
+               (NuMu_flux_err, Nue_flux_err, AntiNuMu_flux_err, AntiNue_flux_err)
+    else
+        return NuMu_flux, Nue_flux, AntiNuMu_flux, AntiNue_flux
+    end
 
 end
 
