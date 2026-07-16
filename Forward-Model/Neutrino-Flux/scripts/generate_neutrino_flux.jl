@@ -117,6 +117,8 @@ for energy and cosθ. The bin centers for cosθ have to be given in increasing o
 - `flux_mode`: `conventional` or `total` (default). `total` means conventional + prompt (only the 
 conventional componennt is calibrated).
 - `return_uncertainties::Bool`: if true, return neutrino flux uncertainties. Default is false. 
+- `df_params::Union{Nothing, Dict{String, <:Number}}`: Daemonflux parameters. By default all Daemonflux parameters
+are set to their default values. Only those provided in the `df_params` are updated to the desired values.
 
 # Returns 
 a 4-tuple (or 8-tuple, if `return_uncertainties::Bool` is true) with the following matrices 
@@ -132,6 +134,7 @@ function produce_neutrino_flux(
     model::Symbol=:Daemonflux, 
     flux_mode::Symbol=:total,
     return_uncertainties::Bool=false
+    df_params::Union{Nothing, Dict{String, <:Number}} = nothing
 )
 
     if (model === :Daemonflux)
@@ -173,15 +176,18 @@ function produce_neutrino_flux(
             anue    = prefix * "antinue" 
         )
 
+        # set Daemonflux parameters
+        params = set_daemonflux_parameters(df_params)
+
         # Energy scaling
         E_scaling = 1e4 ./ (Ebin_centers .^ 3)
         # Fetch raw Daemonflux values
         for (i, θ) in enumerate(θbin_centers)
             # flux values
-            raw_numu  = pyconvert(Vector{Float64}, flux.flux(Ebin_centers, θ, keys.numu))
-            raw_nue   = pyconvert(Vector{Float64}, flux.flux(Ebin_centers, θ, keys.nue))
-            raw_anumu = pyconvert(Vector{Float64}, flux.flux(Ebin_centers, θ, keys.anumu))
-            raw_anue  = pyconvert(Vector{Float64}, flux.flux(Ebin_centers, θ, keys.anue))
+            raw_numu  = pyconvert(Vector{Float64}, flux.flux(Ebin_centers, θ, keys.numu,  params=params))
+            raw_nue   = pyconvert(Vector{Float64}, flux.flux(Ebin_centers, θ, keys.nue,   params=params))
+            raw_anumu = pyconvert(Vector{Float64}, flux.flux(Ebin_centers, θ, keys.anumu, params=params))
+            raw_anue  = pyconvert(Vector{Float64}, flux.flux(Ebin_centers, θ, keys.anue,  params=params))
             NuMu_flux[i, :]     .= raw_numu  .* E_scaling
             Nue_flux[i, :]      .= raw_nue   .* E_scaling
             AntiNuMu_flux[i, :] .= raw_anumu .* E_scaling
