@@ -140,9 +140,14 @@ The get_dflux_param_value function helps find specific values.
 function set_dflux_params(flux_obj, params_dict)
 
     # Set default Daemonflux parameters
-    full_params = set_daemonflux_parameters(flux_obj)
+    full_params = set_dflux_params(flux_obj)
 
-    # Update with pairs from params_dict
+    # If params_dict is nothing, just return the defaults without trying to merge
+    if isnothing(params_dict)
+        return full_params
+    end
+
+    # Otherwise, update with pairs from params_dict
     merge!(full_params, params_dict)
 
     return full_params
@@ -174,7 +179,7 @@ function get_dflux_param_value(flux_obj, param_name, signed_sigma; max_iteration
     p_high = max_param
 
     # Evaluate the function at the upper boundary to ensure a root exists
-    chi2_high = pyconvert(Float64, flux_obj.chi2(params={param_name: p_high}))
+    chi2_high = pyconvert(Float64, flux_obj.chi2(params=Dict(param_name => p_high)))
     diff_high = sqrt(chi2_high) - sigma
     # If the target is out of bounds, fail immediately 
     if diff_high < 0.0
@@ -185,7 +190,7 @@ function get_dflux_param_value(flux_obj, param_name, signed_sigma; max_iteration
     for i in 1:max_iterations
 
         p_mid = (p_low + p_high) / 2
-        chi2_mid = pyconvert(Float64, flux_obj.chi2(params={param_name: p_mid}))
+        chi2_mid = pyconvert(Float64, flux_obj.chi2(params=Dict(param_name => p_mid)))
         sigma_diff = sqrt(chi2_mid) - sigma
 
         # Check if we are within the relative tolerance threshold
@@ -288,7 +293,7 @@ function produce_neutrino_flux(
         )
 
         # set Daemonflux parameters
-        params = set_dflux_params(df_params)
+        params = set_dflux_params(flux, df_params)
 
         # Energy scaling
         E_scaling = 1e4 ./ (Ebin_centers .^ 3)
