@@ -98,6 +98,117 @@ function interpolate_flux_at_bin_centers(energies::Vector{Float64}, flux::Matrix
 end
 
 """
+    set_dflux_params(flux_obj)
+
+Initialize a dictionary of Daemonflux parameters set to their default values.
+
+# Arguments
+- `flux_obj`: A Python object representing a Daemonflux instance.
+
+# Returns
+- `Dict{String, Float64}`: A dictionary mapping parameter names to `0.0`.
+"""
+function set_dflux_params(flux_obj)
+
+    # Fetch all the Daemonflux parameter names 
+    params = pyconvert(Vector{String}, flux_obj.params.known_parameters)
+
+    # Set all parameters to 0 (meaning that their difference with respect to the
+    # default parameters is zero)
+    params_dict = Dict(p => 0.0 for p in params) 
+    
+    return params_dict
+
+end
+
+"""
+    set_dflux_params(flux_obj, params_dict)
+
+Initialize a dictionary of Daemonflux parameters to those values given in `params_dict`.
+Those parameters not mentioned there are set to default values.
+
+# Arguments
+- `flux_obj`: A Python object representing a Daemonflux instance.
+- `params_dict`: A dictionary with those pairs of parameter names and values which should be modified.
+The possible parameter names are K+_158G, K+_2P, K+_31G, K-_158G, K-_2P, K-_31G, n_158G, n_2P, p_158G, p_2P, 
+pi+_158G, pi+_20T, pi+_2P, pi+_31G, pi-_158G, pi-_20T, pi-_2P, pi-_31G, GSF_1, GSF_2, GSF_3, GSF_4, GSF_5, GSF_6.
+The get_dflux_param_value function helps find specific values.
+
+# Returns
+- `Dict{String, Float64}` 
+"""
+function set_dflux_params(flux_obj, params_dict)
+
+    # Set default Daemonflux parameters
+    full_params = set_daemonflux_parameters(flux_obj)
+
+    # Update with pairs from params_dict
+    merge!(full_params, params_dict)
+
+    return full_params
+
+end
+
+"""
+    get_dflux_param_value(flux_obj, param_name, signed_sigma; max_iterations=10000, max_param=10., tol=0.01)
+
+Find the value of the parameter `param_name` which is `signed_sigma` away from the default value.
+
+# Arguments
+- `flux_obj`: A Python object representing a Daemonflux instance.
+- `param_name`: The name of the parameter (see the set_dflux_params function for possible parameter names).
+- `signed_sigma`
+- `max_iterations`: The maximum number of iterations in the Bisection method.
+- `max_param`: The maximum search limit for the absolute value of the parameter value.
+- `tol`: The relative tolerance on the target distance from the default value.
+"""
+function get_dflux_param_value(flux_obj, param_name, signed_sigma; max_iterations=10000, max_param=10., tol=0.01)
+    
+    # Determine the sign of the parameter based on if it should be above or below the default value
+    p_sign = sign(signed_sigma)
+    # flux_obj.chi2 is symmetric and positive, the search is performed on the positive axis
+    sigma = abs(signed_sigma)
+
+    # Define the starting search bounds
+    p_low  = 0.
+    p_high = max_param
+
+    # Evaluate the function at the upper boundary to ensure a root exists
+    chi2_high = pyconvert(Float64, flux_obj.chi2(params={param_name: p_high}))
+    diff_high = sqrt(chi2_high) - sigma
+    # If the target is out of bounds, fail immediately 
+    if diff_high < 0.0
+        error("Target sigma ($signed_sigma) is outside the search bounds. At p = $max_param, chi2 is only $chi2_high. Increase max_p.")
+    end
+
+    # Run Bisection search
+    for i in 1:max_iterations
+
+        p_mid = (p_low + p_high) / 2
+        chi2_mid = pyconvert(Float64, flux_obj.chi2(params={param_name: p_mid}))
+        sigma_diff = sqrt(chi2_mid) - sigma
+
+        # Check if we are within the relative tolerance threshold
+        if abs(sigma_diff) <= tol * sigma
+            return p_sign * p_mid  
+        end
+
+        # Adjust search bounds
+        if sigma_diff < 0.0 
+            p_low = p_mid
+        else
+            p_high = p_mid
+        end
+
+    end
+
+    error("Bisection failed to converge within $max_iterations iterations. Check your parameters.")
+
+end
+
+
+
+"""
     produce_neutrino_flux(bin_centers_arrays; model, flux_mode)
 
 Produce the atmospheric neutrino flux for all relevant neutrino types following a given `model`.
@@ -177,7 +288,7 @@ function produce_neutrino_flux(
         )
 
         # set Daemonflux parameters
-        params = set_daemonflux_parameters(df_params)
+        params = set_dflux_params(df_params)
 
         # Energy scaling
         E_scaling = 1e4 ./ (Ebin_centers .^ 3)
