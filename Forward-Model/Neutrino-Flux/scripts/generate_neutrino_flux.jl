@@ -118,7 +118,7 @@ for energy and cosθ. The bin centers for cosθ have to be given in increasing o
 conventional componennt is calibrated).
 - `return_uncertainties::Bool`: if true, return neutrino flux uncertainties. Default is false. 
 - `df_params::Union{Nothing, Dict{String, <:Number}}`: Daemonflux parameters. By default all Daemonflux parameters
-are set to their default values. Only those provided in the `df_params` are updated to the desired values.
+are set to their default values. Only those provided in the `df_params` dictionary are updated to the desired values.
 
 # Returns 
 a 4-tuple (or 8-tuple, if `return_uncertainties::Bool` is true) with the following matrices 
@@ -133,7 +133,7 @@ function produce_neutrino_flux(
     bin_centers_arrays::Tuple{AbstractArray, AbstractArray}; 
     model::Symbol=:Daemonflux, 
     flux_mode::Symbol=:total,
-    return_uncertainties::Bool=false
+    return_uncertainties::Bool=false,
     df_params::Union{Nothing, Dict{String, <:Number}} = nothing
 )
 
