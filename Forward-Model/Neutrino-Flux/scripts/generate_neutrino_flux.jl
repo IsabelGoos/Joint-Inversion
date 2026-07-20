@@ -229,8 +229,8 @@ Neither model provides tau-neutrino or -antineutrino fluxes since they are negli
 # Arguments
 - `bin_centers_arrays::Tuple{AbstractArray, AbstractArray}`: a 2-tuple containing the bin centers 
 for energy and cosθ. The bin centers for cosθ have to be given in increasing order.
-- `model`: `Daemonflux` (default) or `Honda`.
-- `flux_mode`: `conventional` or `total` (default). `total` means conventional + prompt (only the 
+- `model::Symbol`: `Daemonflux` (default) or `Honda`.
+- `flux_mode::Symbol`: `conventional` or `total` (default). `total` means conventional + prompt (only the 
 conventional componennt is calibrated).
 - `return_uncertainties::Bool`: if true, return neutrino flux uncertainties. Default is false. 
 - `df_params::Union{Nothing, Dict{String, <:Number}}`: Daemonflux parameters. By default all Daemonflux parameters
@@ -245,13 +245,13 @@ in the shape (nθ, nE):
 - `AntiNue_flux`
 (followed by the corresponding uncertanties if `return_uncertainties::Bool` is true, in the same order).
 """
-function produce_neutrino_flux(
-    bin_centers_arrays::Tuple{AbstractArray, AbstractArray}; 
-    model::Symbol=:Daemonflux, 
-    flux_mode::Symbol=:total,
-    return_uncertainties::Bool=false,
-    df_params::Union{Nothing, Dict{String, <:Number}} = nothing
-)
+function produce_neutrino_flux(nuflux_params::Dict{String, Any})
+  
+    bin_centers_arrays   = nuflux_params["bin_centers_arrays"]
+    df_params            = nuflux_params["df_params"]
+    model                = Symbol(nuflux_params["model"])
+    flux_mode            = Symbol(confnuflux_paramsig["flux_mode"])
+    return_uncertainties = nuflux_params["return_uncertainties"]
 
     if (model === :Daemonflux)
 
@@ -323,12 +323,21 @@ function produce_neutrino_flux(
         error("model $model is not supported. Use :Daemonflux or :Honda.")
     end
 
+    results = Dict{String, Any}(
+        "NuMu_flux"     => NuMu_flux,
+        "Nue_flux"      => Nue_flux,
+        "AntiNuMu_flux" => AntiNuMu_flux,
+        "AntiNue_flux"  => AntiNue_flux
+    )
+
     if return_uncertainties
-        return (NuMu_flux,     Nue_flux,     AntiNuMu_flux,     AntiNue_flux), 
-               (NuMu_flux_err, Nue_flux_err, AntiNuMu_flux_err, AntiNue_flux_err)
-    else
-        return NuMu_flux, Nue_flux, AntiNuMu_flux, AntiNue_flux
+        results["NuMu_flux_err"]     = NuMu_flux_err
+        results["Nue_flux_err"]      = Nue_flux_err
+        results["AntiNuMu_flux_err"] = AntiNuMu_flux_err
+        results["AntiNue_flux_err"]  = AntiNue_flux_err
     end
+
+    return results
 
 end
 
