@@ -137,7 +137,7 @@ The get_dflux_param_value function helps find specific values.
 # Returns
 - `Dict{String, Float64}` 
 """
-function set_dflux_params(flux_obj, params_dict)
+function set_dflux_params(flux_obj, params_dict::Union{Nothing, Dict{String, Any}})
 
     # Set default Daemonflux parameters
     full_params = set_dflux_params(flux_obj)
@@ -211,7 +211,9 @@ function get_dflux_param_value(flux_obj, param_name, signed_sigma; max_iteration
 
 end
 
+#function set_hflux_params(params_dict::Dict{String, Any})
 
+#end
 
 """
     produce_neutrino_flux(bin_centers_arrays; model, flux_mode)
@@ -227,14 +229,21 @@ If the `model` `Honda` is chosen, fetch the atmospheric neutrino fluxes from
 Neither model provides tau-neutrino or -antineutrino fluxes since they are negligible.
 
 # Arguments
+- `model::String`: `Daemonflux` (default) or `Honda`.
 - `bin_centers_arrays::Tuple{AbstractArray, AbstractArray}`: a 2-tuple containing the bin centers 
 for energy and cosθ. The bin centers for cosθ have to be given in increasing order.
-- `model::Symbol`: `Daemonflux` (default) or `Honda`.
-- `flux_mode::Symbol`: `conventional` or `total` (default). `total` means conventional + prompt (only the 
+- `params_df::Union{Nothing, Dict{String, Any}}`: Daemonflux parameters. By default all Daemonflux parameters
+are set to their default values. Only those provided in the `params_df` dictionary are updated to the desired values.
+- `flux_mode::String`: `conventional` or `total` (default). `total` means conventional + prompt (only the 
 conventional componennt is calibrated).
 - `return_uncertainties::Bool`: if true, return neutrino flux uncertainties. Default is false. 
-- `df_params::Union{Nothing, Dict{String, <:Number}}`: Daemonflux parameters. By default all Daemonflux parameters
-are set to their default values. Only those provided in the `df_params` dictionary are updated to the desired values.
+- `location_hf::String`: location for honda flux, options are `kamioka`, `gran_sasso`, `sudbury`, `frejus`, `ino`, 
+`south_pole`, `pythasalmi`, `homestake`, `juno`
+- `season_hf::String`: season for honda flux, options are `all_year`, `march_may`, `june_aug`, `sept_nov`, `dec_feb`
+- `angles_separation_hf::String`: the way the angles are organized in the honda flux, options are 
+`variable_ϕ`, `averaged_ϕ`, `averaged_ϕθ`
+- `mountain_overburden_hf::String`: `with` or `without`
+- `solar_activity_hf::String`: `minimum` or `maximum`
 
 # Returns 
 a 4-tuple (or 8-tuple, if `return_uncertainties::Bool` is true) with the following matrices 
@@ -247,13 +256,13 @@ in the shape (nθ, nE):
 """
 function produce_neutrino_flux(nuflux_params::Dict{String, Any})
   
-    bin_centers_arrays   = nuflux_params["bin_centers_arrays"]
-    df_params            = nuflux_params["df_params"]
-    model                = Symbol(nuflux_params["model"])
-    flux_mode            = Symbol(confnuflux_paramsig["flux_mode"])
-    return_uncertainties = nuflux_params["return_uncertainties"]
+    model = Symbol(nuflux_params["model"])
 
     if (model === :Daemonflux)
+
+        bin_centers_arrays   = nuflux_params["bin_centers_arrays"]
+        flux_mode            = Symbol(nuflux_params["flux_mode"])
+        return_uncertainties = nuflux_params["return_uncertainties"]
 
         # Import and instantiate Python Flux class
         daemonflux = pyimport("daemonflux")
@@ -293,7 +302,9 @@ function produce_neutrino_flux(nuflux_params::Dict{String, Any})
         )
 
         # set Daemonflux parameters
-        params = set_dflux_params(flux, df_params)
+        raw_params_df = get(nuflux_params, "params_df", Dict{String, Any}())
+        params_df     = (isnothing(raw_params_df) || isempty(raw_params_df)) ? Dict{String, Any}() : raw_params_df
+        params        = set_dflux_params(flux, params_df)
 
         # Energy scaling
         E_scaling = 1e4 ./ (Ebin_centers .^ 3)
@@ -318,7 +329,9 @@ function produce_neutrino_flux(nuflux_params::Dict{String, Any})
         end
 
     elseif (model === :Honda)
-        error("model $model is not YET supported - work in progress.")
+
+        error("bla")
+
     else 
         error("model $model is not supported. Use :Daemonflux or :Honda.")
     end
