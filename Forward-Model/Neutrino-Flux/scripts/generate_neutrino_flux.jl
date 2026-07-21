@@ -5,6 +5,8 @@ using CSV
 using DataFrames
 using Interpolations
 using PythonCall
+using Downloads
+using CodecZlib
 
 """
     read_neutrino_flux_table(filename::String, nEbins::Int, nθbins::Int, has_header::Bool)
@@ -211,9 +213,60 @@ function get_dflux_param_value(flux_obj, param_name, signed_sigma; max_iteration
 
 end
 
-#function set_hflux_params(params_dict::Dict{String, Any})
+function set_hflux_params(nuflux_params::Dict{String, Any})
 
-#end
+    const LOCATION_MAPPING = Dict{Symbol, String}(
+        :kamioka     => "kam",
+        :gran_sasso  => "grn",
+        :sudbury     => "sno",
+        :frejus      => "frj",
+        :ino         => "ino",
+        :south_pole  => "spl", 
+        :pythasalmi  => "pyh",
+        :homestake   => "hms",
+        :juno        => "juno"
+    )
+
+    const SEASON_MAPPING = Dict{Symbol, String}(
+        :all_year  => "ally",
+        :march_may => "0305",
+        :june_aug  => "0608",
+        :sept_nov  => "0911",
+        :dec_feb   => "1202"
+    )
+
+    const ANGLES_MAPPING = Dict{Symbol, String}(
+        :variable_ϕ   => "20-12", 
+        :averaged_ϕ   => "20-01",
+        :averaged_ϕθ  => "01-01" 
+    )
+
+    const MOUNTAIN_MAPPING = Dict{Symbol, String}(
+        :with    => "-mtn",  
+        :without => "" 
+    )
+
+    const SOLAR_MAPPING = Dict{Symbol, String}(
+        :minimum => "solmin",
+        :maximum => "solmax"
+    )
+
+    loc        = Symbol(nuflux_params["location_hf"])
+    season     = Symbol(nuflux_params["season_hf"])
+    angles_sep = Symbol(nuflux_params["angles_separation_hf"])
+    mountain   = Symbol(nuflux_params["mountain_overburden_hf"])
+    solar      = Symbol(nuflux_params["solar_activity_hf"])
+
+    loc_str    = LOCATION_MAPPING[loc]        
+    season_str = SEASON_MAPPING[season]
+    angles_str = ANGLES_MAPPING[angles_sep]
+    mtn_str    = MOUNTAIN_MAPPING[mountain]
+    solar_str  = SOLAR_MAPPING[solar]
+
+    filename = "http://www-rccn.icrr.u-tokyo.ac.jp/mhonda/public/nflx2014/$(loc_str)-$(season_str)-$(angles_str)$(mtn_str)-$(solar_str).d.gz"
+    return filename
+    
+end
 
 """
     produce_neutrino_flux(bin_centers_arrays; model, flux_mode)
@@ -330,7 +383,32 @@ function produce_neutrino_flux(nuflux_params::Dict{String, Any})
 
     elseif (model === :Honda)
 
-        error("bla")
+        url_honda = set_hflux_params(nuflux_params)
+        io_buffer = IOBuffer()
+        Downloads.download(url_honda, io_buffer)
+        seekstart(io_buffer)
+        decompressed_stream = GzipDecompressorStream(io_buffer)
+        lines = readlines(decompressed_stream)
+        close(decompressed_stream)
+        numeric_lines = filter(line -> occursin(r"^\s*[0-9.-]", line), lines)
+        raw_data = map(numeric_lines) do line
+            parse.(Float64, split(line))
+        end
+        matrix_2d = hcat(raw_data...)
+        n_E = 101
+        n_cosθ = 20
+        n_azimuth = 12 
+        
+        flux_reshaped = reshape(matrix_2d, 5, n_E, n_cosθ)
+
+        results = Dict{String, Any}(
+            "NuMu_flux"     => flux_reshaped[2, :, :]',
+            "Nue_flux"      => flux_reshaped[4, :, :]',
+            "AntiNuMu_flux" => flux_reshaped[3, :, :]',
+            "AntiNue_flux"  => flux_reshaped[5, :, :]',
+            "Energies"      => flux_reshaped[1, :, 1],
+            "cosθ"          => range(-1, 1, 20)
+        )
 
     else 
         error("model $model is not supported. Use :Daemonflux or :Honda.")
