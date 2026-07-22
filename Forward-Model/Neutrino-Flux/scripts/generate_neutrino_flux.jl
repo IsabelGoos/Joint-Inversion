@@ -8,8 +8,9 @@ using Downloads
 using CodecZlib
 using DelimitedFiles
 
-export read_neutrino_flux_table, produce_neutrino_flux
+export read_neutrino_flux_table, produce_neutrino_flux, set_default_neutrino_flux!
 
+# For now, the default neutrino flux is the same as in EarthProbe
 const DEFAULT_NUFLUX_PARAMS = Ref(Dict{String, Any}(
     "model"                  => :Honda,
     "location_hf"            => "gran_sasso",      
@@ -18,7 +19,22 @@ const DEFAULT_NUFLUX_PARAMS = Ref(Dict{String, Any}(
     "mountain_overburden_hf" => "without",
     "solar_activity_hf"      => "minimum"   
 ))
-const DEFAULT_NUFLUX = Ref(produce_neutrino_flux(DEFAULT_NUFLUX_PARAMS))
+
+const DEFAULT_NUFLUX = Ref{Any}(nothing)
+function __init__()
+    DEFAULT_NUFLUX[] = produce_neutrino_flux(DEFAULT_NUFLUX_PARAMS[])
+end
+
+"""
+    set_default_neutrino_flux!(nuflux_params::Dict{String, Any})
+
+Updates the default configuration parameters and recalculates the global 
+default neutrino flux data using the new settings.
+"""
+function set_default_neutrino_flux!(nuflux_params::Dict{String, Any})
+    DEFAULT_NUFLUX_PARAMS[] = nuflux_params
+    DEFAULT_NUFLUX[]        = produce_neutrino_flux(nuflux_params)
+end
 
 const LOCATION_MAPPING = Dict{Symbol, String}(
     :kamioka     => "kam",
@@ -335,6 +351,13 @@ function produce_neutrino_flux(nuflux_params::Dict{String, Any})
 
 end
 
+"""
+    produce_daemonflux_neutrino_flux(nuflux_params::Dict{String, Any})
+
+Produce the atmospheric neutrino flux for all relevant neutrino types using the Daemonflux model.
+
+See produce_neutrino_flux for more information.
+"""
 function produce_daemonflux_neutrino_flux(nuflux_params::Dict{String, Any})
     
     # Read some inputs
@@ -419,6 +442,13 @@ function produce_daemonflux_neutrino_flux(nuflux_params::Dict{String, Any})
 
 end
 
+"""
+    produce_honda_neutrino_flux(nuflux_params::Dict{String, Any})
+
+Produce the atmospheric neutrino flux for all relevant neutrino types using the honda model.
+
+See produce_neutrino_flux for more information.
+"""
 function produce_honda_neutrino_flux(nuflux_params::Dict{String, Any})
 
     # Read parameters and define url from where to fetch the data
@@ -473,35 +503,6 @@ function produce_honda_neutrino_flux(nuflux_params::Dict{String, Any})
     else
         error("Invalid angles_separation_hf option: $angles_sep. Use :variable_ϕ, :averaged_ϕ, or :averaged_ϕθ.")
     end
-
-
-       #url_honda = set_hflux_params(nuflux_params)
-        #io_buffer = IOBuffer()
-        #Downloads.download(url_honda, io_buffer)
-        #seekstart(io_buffer)
-        #decompressed_stream = GzipDecompressorStream(io_buffer)
-        #lines = readlines(decompressed_stream)
-        #close(decompressed_stream)
-        #numeric_lines = filter(line -> occursin(r"^\s*[0-9.-]", line), lines)
-        #raw_data = map(numeric_lines) do line
-        #    parse.(Float64, split(line))
-        #end
-        #matrix_2d = hcat(raw_data...)
-        #n_E = 101
-        #n_cosθ = 20
-        #n_azimuth = 12 
-        
-        #flux_reshaped = reshape(matrix_2d, 5, n_E, n_cosθ)
-
-        #results = Dict{String, AbstractArray{Float64}}(
-        #    "NuMu_flux"     => flux_reshaped[2, :, :]',
-        #   "Nue_flux"      => flux_reshaped[4, :, :]',
-        #    "AntiNuMu_flux" => flux_reshaped[3, :, :]',
-        #    "AntiNue_flux"  => flux_reshaped[5, :, :]',
-        #    "Energies"      => flux_reshaped[1, :, 1],
-        #    "cosθ"          => range(-1, 1, 20)
-        #)
-    #return results
 
 end
 
