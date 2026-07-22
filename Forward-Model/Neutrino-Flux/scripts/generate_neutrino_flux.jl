@@ -10,6 +10,16 @@ using DelimitedFiles
 
 export read_neutrino_flux_table, produce_neutrino_flux
 
+const DEFAULT_NUFLUX_PARAMS = Ref(Dict{String, Any}(
+    "model"                  => :Honda,
+    "location_hf"            => "gran_sasso",      
+    "season_hf"              => "all_year",
+    "angles_separation_hf"   => "averaged_ϕ",       
+    "mountain_overburden_hf" => "without",
+    "solar_activity_hf"      => "minimum"   
+))
+const DEFAULT_NUFLUX = Ref(produce_neutrino_flux(DEFAULT_NUFLUX_PARAMS))
+
 const LOCATION_MAPPING = Dict{Symbol, String}(
     :kamioka     => "kam",
     :gran_sasso  => "grn",
