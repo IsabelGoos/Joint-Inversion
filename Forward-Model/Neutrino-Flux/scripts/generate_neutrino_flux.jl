@@ -457,7 +457,15 @@ function produce_honda_neutrino_flux(nuflux_params::Dict{String, Any})
     
     # Download and decompression
     io_buffer = IOBuffer()
-    Downloads.download(url_honda, io_buffer)
+    try
+        Downloads.download(url_honda, io_buffer)
+    catch e 
+        if e isa Downloads.RequestError
+            error("Failed to download Honda flux. The URL does not exist or the server is down.\nURL attempted: $url_honda\nDetails: $(e.message)")
+        else
+            rethrow(e) 
+        end
+    end
     seekstart(io_buffer)
     
     # Decompress
@@ -469,8 +477,6 @@ function produce_honda_neutrino_flux(nuflux_params::Dict{String, Any})
     numeric_lines = filter(line -> occursin(r"^\s*[0-9.-]", line), lines)
     clean_text_block = join(numeric_lines, "\n")
     matrix_2d = readdlm(IOBuffer(clean_text_block), Float64)
-    print(matrix_2d)
-    print("TEST: ", size(matrix_2d))
     
     # Reshaping based on angular separation mode
     if angles_sep === :averaged_ϕ
