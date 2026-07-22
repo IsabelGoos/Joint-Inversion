@@ -1,11 +1,11 @@
 #using  Pkg
 #Pkg.activate(FLEXOPT_DIR)
-using DotEnv
-DotEnv.load!()
-const FLEXOPT_DIR = ENV["FLEXOPT_DIR"]
-using Pkg
-Pkg.activate(FLEXOPT_DIR)
-const FLEXOPT_DIR = "/Users/igoos/Desktop/projects/flexOPT" # TO-DO: adapt this path to FlexOPT
+#using DotEnv
+#DotEnv.load!()
+#const FLEXOPT_DIR = ENV["FLEXOPT_DIR"]
+#using Pkg
+#Pkg.activate(FLEXOPT_DIR)
+#const FLEXOPT_DIR = "/Users/igoos/Desktop/projects/flexOPT" # TO-DO: adapt this path to FlexOPT
 
 include("../../Neutrino-Flux/scripts/generate_neutrino_flux.jl")
 using .Neutrino_Flux
@@ -53,6 +53,69 @@ flux_νe = reverse(flux_νe', dims=1)
 flux_νμ = reverse(flux_νμ', dims=1)
 flux_antiνe = reverse(flux_antiνe', dims=1)
 flux_antiνμ = reverse(flux_antiνμ', dims=1)
+
+
+
+
+egrid = logrange(1, 40, 1000)
+cosθgrid = range(-1, 0, 100)
+nuflux_params_dict = Dict(
+    "model"                => "Daemonflux",
+    "bin_centers_arrays"   => (egrid, cosθgrid),
+    "flux_mode"            => "conventional",
+    "return_uncertainties" => false
+)
+output_dir = Neutrino_Flux.produce_neutrino_flux(nuflux_params_dict)
+NuMu_flux = output_dir["NuMu_flux"]
+p = heatmap(egrid, cosθgrid, log10.(NuMu_flux), xaxis=:log)
+
+using Downloads
+using CodecZlib
+io_buffer = IOBuffer()
+url = "http://www-rccn.icrr.u-tokyo.ac.jp/mhonda/public/nflx2014/kam-1202-20-01-solmin.d.gz"
+Downloads.download(url, io_buffer)
+seekstart(io_buffer)
+decompressed_stream = GzipDecompressorStream(io_buffer)
+lines = readlines(decompressed_stream)
+close(decompressed_stream)
+numeric_lines = filter(line -> occursin(r"^\s*[0-9.-]", line), lines)
+raw_data = map(numeric_lines) do line
+    parse.(Float64, split(line))
+end
+matrix_2d = hcat(raw_data...)
+n_E = 101
+n_cosθ = 20
+n_azimuth = 12 
+
+flux_grid = reshape(matrix_2d, 5, n_E, n_cosθ)
+energies   = flux_grid[1, :, 1]
+numu_flux   = flux_grid[2, :, :]
+anumu_flux  = flux_grid[3, :, :]
+nue_flux    = flux_grid[4, :, :]
+anue_flux   = flux_grid[5, :, :]
+cosθgrid = range(-1, 1, 20)
+p = heatmap(energies, cosθgrid, log10.(numu_flux'), xscale=:log10)
+size(energies)
+size(cosθgrid)
+size(numu_flux)
+for i = 1:length(energies)
+    println(energies[i])  # Changed 1 to i
+end
+
+nuflux_params = Dict{String, Any}(
+    "model"                  => :Honda,
+    "location_hf"            => "gran_sasso",      
+    "season_hf"              => "all_year",
+    "angles_separation_hf"   => "averaged_ϕ",       
+    "mountain_overburden_hf" => "without",
+    "solar_activity_hf"      => "minimum"   
+)
+
+nufluxresult = produce_neutrino_flux(nuflux_params)
+
+
+
+
 
 # neutrino oscillation probabilities look good
 # TO-DO: Paνe2aντ deserves some attention → do a difference with OscProb!
