@@ -6,9 +6,45 @@ using Interpolations
 using PythonCall
 using Downloads
 using CodecZlib
+using DelimitedFiles
 
 export read_neutrino_flux_table, produce_neutrino_flux
 
+const LOCATION_MAPPING = Dict{Symbol, String}(
+    :kamioka     => "kam",
+    :gran_sasso  => "grn",
+    :sudbury     => "sno",
+    :frejus      => "frj",
+    :ino         => "ino",
+    :south_pole  => "spl", 
+    :pythasalmi  => "pyh",
+    :homestake   => "hms",
+    :juno        => "juno"
+)
+
+const SEASON_MAPPING = Dict{Symbol, String}(
+    :all_year  => "ally",
+    :march_may => "0305",
+    :june_aug  => "0608",
+    :sept_nov  => "0911",
+    :dec_feb   => "1202"
+)
+
+const ANGLES_MAPPING = Dict{Symbol, String}(
+    :variable_ϕ   => "20-12", 
+    :averaged_ϕ   => "20-01",
+    :averaged_ϕθ  => "01-01" 
+)
+
+const MOUNTAIN_MAPPING = Dict{Symbol, String}(
+    :with    => "-mtn",  
+    :without => "" 
+)
+
+const SOLAR_MAPPING = Dict{Symbol, String}(
+    :minimum => "solmin",
+    :maximum => "solmax"
+)
 
 """
     read_neutrino_flux_table(filename::String, nEbins::Int, nθbins::Int, has_header::Bool)
@@ -217,42 +253,6 @@ end
 
 function set_hflux_params(nuflux_params::Dict{String, Any})
 
-    const LOCATION_MAPPING = Dict{Symbol, String}(
-        :kamioka     => "kam",
-        :gran_sasso  => "grn",
-        :sudbury     => "sno",
-        :frejus      => "frj",
-        :ino         => "ino",
-        :south_pole  => "spl", 
-        :pythasalmi  => "pyh",
-        :homestake   => "hms",
-        :juno        => "juno"
-    )
-
-    const SEASON_MAPPING = Dict{Symbol, String}(
-        :all_year  => "ally",
-        :march_may => "0305",
-        :june_aug  => "0608",
-        :sept_nov  => "0911",
-        :dec_feb   => "1202"
-    )
-
-    const ANGLES_MAPPING = Dict{Symbol, String}(
-        :variable_ϕ   => "20-12", 
-        :averaged_ϕ   => "20-01",
-        :averaged_ϕθ  => "01-01" 
-    )
-
-    const MOUNTAIN_MAPPING = Dict{Symbol, String}(
-        :with    => "-mtn",  
-        :without => "" 
-    )
-
-    const SOLAR_MAPPING = Dict{Symbol, String}(
-        :minimum => "solmin",
-        :maximum => "solmax"
-    )
-
     loc        = Symbol(nuflux_params["location_hf"])
     season     = Symbol(nuflux_params["season_hf"])
     angles_sep = Symbol(nuflux_params["angles_separation_hf"])
@@ -411,33 +411,87 @@ end
 
 function produce_honda_neutrino_flux(nuflux_params::Dict{String, Any})
 
-       url_honda = set_hflux_params(nuflux_params)
-        io_buffer = IOBuffer()
-        Downloads.download(url_honda, io_buffer)
-        seekstart(io_buffer)
-        decompressed_stream = GzipDecompressorStream(io_buffer)
-        lines = readlines(decompressed_stream)
-        close(decompressed_stream)
-        numeric_lines = filter(line -> occursin(r"^\s*[0-9.-]", line), lines)
-        raw_data = map(numeric_lines) do line
-            parse.(Float64, split(line))
-        end
-        matrix_2d = hcat(raw_data...)
-        n_E = 101
+    # Read parameters and define url from where to fetch the data
+    url_honda  = set_hflux_params(nuflux_params)
+    angles_sep = Symbol(nuflux_params["angles_separation_hf"])
+    
+    # Download and decompression
+    io_buffer = IOBuffer()
+    Downloads.download(url_honda, io_buffer)
+    seekstart(io_buffer)
+    
+    # Decompress
+    decompressed_stream = GzipDecompressorStream(io_buffer)
+    
+    # Read the text grid into a Matrix{Float64}, omit any lines with text 
+    lines = readlines(decompressed_stream)
+    close(decompressed_stream)
+    numeric_lines = filter(line -> occursin(r"^\s*[0-9.-]", line), lines)
+    clean_text_block = join(numeric_lines, "\n")
+    matrix_2d = readdlm(IOBuffer(clean_text_block), Float64)
+    print(matrix_2d)
+    print("TEST: ", size(matrix_2d))
+    
+    # Reshaping based on angular separation mode
+    if angles_sep === :averaged_ϕ
+
+        # Grid layout: 5 columns x 101 energies x 20 cosθ steps
+        n_E    = 101
         n_cosθ = 20
-        n_azimuth = 12 
-        
-        flux_reshaped = reshape(matrix_2d, 5, n_E, n_cosθ)
+        flux_reshaped = reshape(matrix_2d', 5, n_E, n_cosθ)
 
+        # Extract matrices and transpose using optimization views ('.') 
+        # to match your required shape without unnecessary memory allocation.
         results = Dict{String, Any}(
-            "NuMu_flux"     => flux_reshaped[2, :, :]',
-            "Nue_flux"      => flux_reshaped[4, :, :]',
-            "AntiNuMu_flux" => flux_reshaped[3, :, :]',
-            "AntiNue_flux"  => flux_reshaped[5, :, :]',
+            "NuMu_flux"     => collect(flux_reshaped[2, :, :]'),
+            "Nue_flux"      => collect(flux_reshaped[4, :, :]'),
+            "AntiNuMu_flux" => collect(flux_reshaped[3, :, :]'),
+            "AntiNue_flux"  => collect(flux_reshaped[5, :, :]'),
             "Energies"      => flux_reshaped[1, :, 1],
-            "cosθ"          => range(-1, 1, 20)
+            "cosθs"         => range(-1.0, 1.0, length=20)
         )
+        return results
 
+    elseif angles_sep === :variable_ϕ
+        # TODO: Implement the reshaping logic for the azimuth-dependent grid
+        error("angles_separation_hf mode :variable_ϕ is not yet implemented.")
+
+    elseif angles_sep === :averaged_ϕθ
+        # TODO: Implement the reshaping logic for the fully integrated/averaged grid
+        error("angles_separation_hf mode :averaged_ϕθ is not yet implemented.")
+
+    else
+        error("Invalid angles_separation_hf option: $angles_sep. Use :variable_ϕ, :averaged_ϕ, or :averaged_ϕθ.")
+    end
+
+
+       #url_honda = set_hflux_params(nuflux_params)
+        #io_buffer = IOBuffer()
+        #Downloads.download(url_honda, io_buffer)
+        #seekstart(io_buffer)
+        #decompressed_stream = GzipDecompressorStream(io_buffer)
+        #lines = readlines(decompressed_stream)
+        #close(decompressed_stream)
+        #numeric_lines = filter(line -> occursin(r"^\s*[0-9.-]", line), lines)
+        #raw_data = map(numeric_lines) do line
+        #    parse.(Float64, split(line))
+        #end
+        #matrix_2d = hcat(raw_data...)
+        #n_E = 101
+        #n_cosθ = 20
+        #n_azimuth = 12 
+        
+        #flux_reshaped = reshape(matrix_2d, 5, n_E, n_cosθ)
+
+        #results = Dict{String, AbstractArray{Float64}}(
+        #    "NuMu_flux"     => flux_reshaped[2, :, :]',
+        #   "Nue_flux"      => flux_reshaped[4, :, :]',
+        #    "AntiNuMu_flux" => flux_reshaped[3, :, :]',
+        #    "AntiNue_flux"  => flux_reshaped[5, :, :]',
+        #    "Energies"      => flux_reshaped[1, :, 1],
+        #    "cosθ"          => range(-1, 1, 20)
+        #)
+    #return results
 
 end
 
