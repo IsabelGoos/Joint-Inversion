@@ -69,6 +69,9 @@ output_dir = Neutrino_Flux.produce_neutrino_flux(nuflux_params_dict)
 NuMu_flux = output_dir["NuMu_flux"]
 p = heatmap(egrid, cosθgrid, log10.(NuMu_flux), xaxis=:log)
 
+
+
+
 using Downloads
 using CodecZlib
 io_buffer = IOBuffer()
@@ -104,15 +107,30 @@ end
 
 nuflux_params = Dict{String, Any}(
     "model"                  => :Honda,
-    "location_hf"            => "gran_sasso",      
-    "season_hf"              => "all_year",
+    "location_hf"            => "kamioka",      
+    "season_hf"              => "dec_feb",
     "angles_separation_hf"   => "averaged_ϕ",       
     "mountain_overburden_hf" => "without",
     "solar_activity_hf"      => "minimum"   
 )
-
 nufluxresult = produce_neutrino_flux(nuflux_params)
 
+energies = nufluxresult["Energies"]
+cosθgrid = nufluxresult["cosθs"]
+numu_flux = nufluxresult["NuMu_flux"]
+nue_flux = nufluxresult["Nue_flux"]
+anumu_flux = nufluxresult["AntiNuMu_flux"]
+
+p = heatmap(energies, cosθgrid, log10.(numu_flux), xscale=:log10)
+
+my_flux = Neutrino_Flux.DEFAULT_NUFLUX[]
+def_energies = my_flux["Energies"]
+def_cosθgrid = my_flux["cosθs"]
+def_numu_flux = my_flux["NuMu_flux"]
+def_nue_flux = my_flux["Nue_flux"]
+def_anumu_flux = my_flux["AntiNuMu_flux"]
+
+p = heatmap(def_energies, def_cosθgrid, log10.(def_numu_flux), xscale=:log10)
 
 
 
