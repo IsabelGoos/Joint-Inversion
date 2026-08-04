@@ -7,6 +7,9 @@
 #Pkg.activate(FLEXOPT_DIR)
 #const FLEXOPT_DIR = "/Users/igoos/Desktop/projects/flexOPT" # TO-DO: adapt this path to FlexOPT
 
+
+using PythonCall
+
 include("../../Neutrino-Flux/scripts/generate_neutrino_flux.jl")
 using .Neutrino_Flux
 ParamFile = "../config/testparam.csv" # TO-DO: adapt this path, in case it changes 
