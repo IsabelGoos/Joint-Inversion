@@ -1,3 +1,4 @@
 *.root
+.DS_Store
 .CondaPkg/
 
