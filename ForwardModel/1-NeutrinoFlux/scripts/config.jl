@@ -96,6 +96,9 @@ function set_default_neutrino_flux!(model::Symbol=:Honda; kwargs...)
     return (; model=model_validated, params=params_validated)
 end
 
+set_default_neutrino_flux!(model::AbstractString; kwargs...) =
+    set_default_neutrino_flux!(Symbol(model); kwargs...)
+
 """
     _update_parameters(params::NeutrinoFluxParameters; kwargs...)
 
@@ -158,7 +161,7 @@ const LOCATION_MAPPING_H = Dict{Symbol, String}(
     :juno       => "juno",
 )
 
-# Cheng Location Mapping
+# Cheng Location mapping
 const LOCATION_MAPPING_C = Dict{Symbol, Vector{String}}(
     :cjpl       => ["CJPL", "jp"],
     :dune       => ["DUNE", "dune"],
@@ -169,6 +172,7 @@ const LOCATION_MAPPING_C = Dict{Symbol, Vector{String}}(
     :trident    => ["TRIDENT", "trident"],
 )
 
+# Seasons, used by Honda and Cheng.
 const SEASON_MAPPING = Dict{Symbol, String}(
     :all_year  => "ally",
     :march_may => "0305",
@@ -177,6 +181,7 @@ const SEASON_MAPPING = Dict{Symbol, String}(
     :dec_feb   => "1202",
 )
 
+# Angles separation, used by Honda and Cheng.
 const ANGLES_MAPPING = Dict{Symbol, String}(
     :variable_ϕ  => "20-12",
     :averaged_ϕ  => "20-01",
@@ -189,11 +194,13 @@ const SOLAR_MAPPING = Dict{Symbol, @NamedTuple{honda::String, cheng::String}}(
     :maximum => (honda = "solmax", cheng = "solar-max"),
 )
 
+# Mountain overburden, used by Honda only.
 const MOUNTAIN_MAPPING = Dict{Symbol, String}(
     :with    => "-mtn",
     :without => "",
 )
 
+# Muon propagation, used by Cheng only.
 const MUON_PROPA_MAPPING = Dict{Symbol, String}(
     :with    => "with-muon-in-earth",
     :without => "without-muon-in-earth",
@@ -277,7 +284,7 @@ const HONDA_BASE_URL = "http://www-rccn.icrr.u-tokyo.ac.jp/mhonda/public/nflx201
 const CHENG_BASE_URL = "https://raw.githubusercontent.com/JIECheng2021/atm_nu_flux_data/main"
          
 # ============================================================================
-# Valid ranges of each model's tables
+# Valid energy and angular ranges of each model's tables
 # ============================================================================
 
 const HONDA_E_RANGE    = (0.1, 1.0e4)
