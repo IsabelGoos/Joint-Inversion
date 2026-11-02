@@ -1,0 +1,293 @@
+# ============================================================================
+# Neutrino flux model parameter structs
+# ============================================================================
+
+"""
+    NeutrinoFluxParameters
+
+Abstract supertype of the parameter sets of the supported neutrino flux
+models. Each model has its own concrete subtype, since each depends on a
+different set of parameters.
+"""
+abstract type NeutrinoFluxParameters end
+
+"""
+    HondaParameters
+
+Parameters specific to the Honda atmospheric neutrino flux model tables.
+"""
+Base.@kwdef struct HondaParameters <: NeutrinoFluxParameters
+    location::Symbol            = :gran_sasso
+    season::Symbol              = :all_year
+    angles_separation::Symbol   = :averaged_ϕ
+    solar_activity::Symbol      = :minimum
+    mountain_overburden::Symbol = :without
+end
+
+"""
+    DaemonfluxParameters
+
+Parameters specific to the Daemonflux model.
+"""
+Base.@kwdef struct DaemonfluxParameters <: NeutrinoFluxParameters
+    flux_mode::Symbol          = :total
+    return_uncertainties::Bool = false
+    params_df::Union{Nothing, Dict{String, Any}} = nothing
+end
+
+"""
+    ChengParameters
+
+Parameters specific to the Cheng atmospheric neutrino flux model tables.
+"""
+Base.@kwdef struct ChengParameters <: NeutrinoFluxParameters
+    location::Symbol          = :orca
+    season::Symbol            = :all_year
+    angles_separation::Symbol = :averaged_ϕ
+    solar_activity::Symbol    = :minimum
+    muon_propa_earth::Symbol  = :with 
+end
+
+# Associate to each model the corresponding parameter set subtype.
+const MODEL_2_PARAMSTYPE = Dict{Symbol, Type{<:NeutrinoFluxParameters}}(
+    :Honda      => HondaParameters,
+    :Daemonflux => DaemonfluxParameters,
+    :Cheng      => ChengParameters,
+)
+
+# ============================================================================
+# Defaults
+# ============================================================================
+
+const DEFAULT_NUFLUX_MODEL  = Ref{Symbol}(:Honda)
+const DEFAULT_NUFLUX_PARAMS = Ref{NeutrinoFluxParameters}(HondaParameters())
+
+"""
+    set_default_neutrino_flux!(model::Symbol; kwargs...)
+
+Set the default neutrino flux model and its parameters (default=Honda).
+
+The parameter set is built from the defaults of `model`, and the keyword
+arguments override the fields you want to change. Fields not given as keywords
+take the model's default values, they do **not** keep settings from earlier
+calls. Each call therefore defines the full configuration.
+
+No network access or flux computation occurs here.
+
+# Returns
+A `NamedTuple` `(; model, params)` with the new default model and its
+validated parameter set.
+"""
+function set_default_neutrino_flux!(model::Symbol=:Honda; kwargs...)
+
+    # Check if model is legit.
+    model_validated = _validate_neutrino_flux_model(model)
+
+    # Define default parameters corresponding to the model.
+    params_type = MODEL_2_PARAMSTYPE[model_validated] 
+    params = params_type()
+
+    # Update any parameters and validate the new parameter set.
+    params_validated = _validate_parameters(_update_parameters(params; kwargs...))
+
+    # Commit only after validation succeeded.
+    DEFAULT_NUFLUX_MODEL[]  = model_validated
+    DEFAULT_NUFLUX_PARAMS[] = params_validated
+    return (; model=model_validated, params=params_validated)
+end
+
+"""
+    _update_parameters(params::NeutrinoFluxParameters; kwargs...)
+
+Return a copy of the parameter set `params` in which (only) the fields given as
+keyword arguments are replaced by their new values.
+"""
+function _update_parameters(params::ParamsType; kwargs...) where {ParamsType<:NeutrinoFluxParameters}
+
+    # Names of the fields of this parameter type.
+    names = fieldnames(ParamsType) # Note that fieldnames gives Symbols (except in the case of tuples).
+
+    # Catch typos and keywords that belong to another model.
+    bad_keys = [k for k in keys(kwargs) if k ∉ names]
+    isempty(bad_keys) || throw(ArgumentError(
+        "Unknown $(nameof(ParamsType)): $(repr(bad_keys)). Valid: $(collect(names))."))
+
+    # Convert the struct into a NamedTuple...
+    current_params = NamedTuple{names}(ntuple(i -> getfield(params, i), length(names)))
+    # ... so that it can be merged with the given keyword arguments.
+    return ParamsType(; merge(current_params, NamedTuple(kwargs))...)
+end
+
+"""
+    _default_flux_dict()
+
+Return a dictionary containing the default neutrino flux configuration,
+including the model specified by `DEFAULT_NUFLUX_MODEL` and the parameter
+values specified by `DEFAULT_NUFLUX_PARAMS`.
+"""
+function _default_flux_dict()
+    
+    # Create a dictionary containing the default neutrino flux parameters.
+    params = DEFAULT_NUFLUX_PARAMS[]
+    f_dict = Dict{String, Any}(
+        String(f) => getfield(params, f) for f in fieldnames(typeof(params))
+    )
+ 
+    # Include the default neutrino flux model.
+    f_dict["model"] = DEFAULT_NUFLUX_MODEL[]
+
+    return f_dict
+end
+
+# ============================================================================
+# Mappings
+# ============================================================================
+# These mappings are used to build the file names that are then used to
+# retrieve the corresponding models from the web.
+
+# Honda location mapping
+const LOCATION_MAPPING_H = Dict{Symbol, String}(
+    :kamioka    => "kam",
+    :gran_sasso => "grn",
+    :sudbury    => "sno",
+    :frejus     => "frj",
+    :ino        => "ino",
+    :south_pole => "spl",
+    :pythasalmi => "pyh",
+    :homestake  => "hms",
+    :juno       => "juno",
+)
+
+# Cheng Location Mapping
+const LOCATION_MAPPING_C = Dict{Symbol, Vector{String}}(
+    :cjpl       => ["CJPL", "jp"],
+    :dune       => ["DUNE", "dune"],
+    :icecube    => ["IceCube", "icecube"],
+    :juno       => ["JUNO", "juno"],
+    :orca       => ["KM3NeT-ORCA", "orca"],
+    :superk     => ["SK", "kam"],
+    :trident    => ["TRIDENT", "trident"],
+)
+
+const SEASON_MAPPING = Dict{Symbol, String}(
+    :all_year  => "ally",
+    :march_may => "0305",
+    :june_aug  => "0608",
+    :sept_nov  => "0911",
+    :dec_feb   => "1202",
+)
+
+const ANGLES_MAPPING = Dict{Symbol, String}(
+    :variable_ϕ  => "20-12",
+    :averaged_ϕ  => "20-01",
+    :averaged_ϕθ => "01-01",
+)
+
+# The first/second option is used by Honda/Cheng.
+const SOLAR_MAPPING = Dict{Symbol, @NamedTuple{honda::String, cheng::String}}(
+    :minimum => (honda = "solmin", cheng = "solar-min"),
+    :maximum => (honda = "solmax", cheng = "solar-max"),
+)
+
+const MOUNTAIN_MAPPING = Dict{Symbol, String}(
+    :with    => "-mtn",
+    :without => "",
+)
+
+const MUON_PROPA_MAPPING = Dict{Symbol, String}(
+    :with    => "with-muon-in-earth",
+    :without => "without-muon-in-earth",
+)
+
+# ============================================================================
+# Allowed parameters
+# ============================================================================
+
+const ALLOWED_MODELS = Set{Symbol}([
+    :Honda, :Daemonflux, :Cheng,
+])
+
+const DAEMONFLUX_ALLOWED_FLUX_MODES = Set{Symbol}([
+    :total, :conventional,
+])
+
+const DAEMONFLUX_ALLOWED_KEYS = Set{String}([
+    "K+_158G", "K+_2P", "K+_31G", "K-_158G", "K-_2P", "K-_31G",
+    "n_158G", "n_2P", "p_158G", "p_2P",
+    "pi+_158G", "pi+_20T", "pi+_2P", "pi+_31G",
+    "pi-_158G", "pi-_20T", "pi-_2P", "pi-_31G",
+    "GSF_1", "GSF_2", "GSF_3", "GSF_4", "GSF_5", "GSF_6",
+])
+
+const FLUX_KEYS = ("NuMu_flux", "Nue_flux", "AntiNuMu_flux", "AntiNue_flux")
+
+# ============================================================================
+# Validation methods
+# ============================================================================
+
+function _validate_neutrino_flux_model(model::Symbol)
+    model in ALLOWED_MODELS ||
+        throw(ArgumentError("Unsupported neutrino flux model $(repr(model)). Valid: $(collect(ALLOWED_MODELS))."))
+    return model
+end
+
+function _validate_parameters(p::HondaParameters)
+    haskey(LOCATION_MAPPING_H, p.location) ||
+        throw(ArgumentError("Unsupported Honda location $(repr(p.location)). Valid: $(collect(keys(LOCATION_MAPPING_H)))."))
+    haskey(SEASON_MAPPING, p.season) ||
+        throw(ArgumentError("Unsupported Honda season $(repr(p.season)). Valid: $(collect(keys(SEASON_MAPPING)))."))
+    haskey(ANGLES_MAPPING, p.angles_separation) ||
+        throw(ArgumentError("Unsupported Honda angular separation $(repr(p.angles_separation)). Valid: $(collect(keys(ANGLES_MAPPING)))."))
+    haskey(SOLAR_MAPPING, p.solar_activity) ||
+        throw(ArgumentError("Unsupported Honda solar activity $(repr(p.solar_activity)). Valid: $(collect(keys(SOLAR_MAPPING)))."))
+    haskey(MOUNTAIN_MAPPING, p.mountain_overburden) ||
+        throw(ArgumentError("Unsupported Honda mountain overburden $(repr(p.mountain_overburden)). Valid: $(collect(keys(MOUNTAIN_MAPPING)))."))
+    return p
+end
+
+function _validate_parameters(p::DaemonfluxParameters)
+    p.flux_mode in DAEMONFLUX_ALLOWED_FLUX_MODES ||
+        throw(ArgumentError("Unsupported Daemonflux mode $(repr(p.flux_mode)). Valid: $(collect(DAEMONFLUX_ALLOWED_FLUX_MODES))."))
+    if !isnothing(p.params_df)
+       bad_keys = [k for k in keys(p.params_df) if k ∉ DAEMONFLUX_ALLOWED_KEYS]
+       isempty(bad_keys) || throw(ArgumentError("Invalid Daemonflux parameter(s): $(repr.(bad_keys)). Valid: $(collect(DAEMONFLUX_ALLOWED_KEYS))."))
+    end
+    return p
+end
+
+function _validate_parameters(p::ChengParameters)
+    haskey(LOCATION_MAPPING_C, p.location) ||
+        throw(ArgumentError("Unsupported Cheng location $(repr(p.location)). Valid: $(collect(keys(LOCATION_MAPPING_C)))."))
+    haskey(SEASON_MAPPING, p.season) ||
+        throw(ArgumentError("Unsupported Cheng season $(repr(p.season)). Valid: $(collect(keys(SEASON_MAPPING)))."))
+    haskey(ANGLES_MAPPING, p.angles_separation) ||
+        throw(ArgumentError("Unsupported Cheng angular separation $(repr(p.angles_separation)). Valid: $(collect(keys(ANGLES_MAPPING)))."))
+    haskey(SOLAR_MAPPING, p.solar_activity) ||
+        throw(ArgumentError("Unsupported Cheng solar activity $(repr(p.solar_activity)). Valid: $(collect(keys(SOLAR_MAPPING)))."))
+    haskey(MUON_PROPA_MAPPING, p.muon_propa_earth) ||
+        throw(ArgumentError("Unsupported Cheng muon propagation $(repr(p.mountain_overburden)). Valid: $(collect(keys(MUON_PROPA_MAPPING)))."))
+    return p
+end
+
+# ============================================================================
+# Base urls of the different neutrino flux models
+# ============================================================================
+
+const HONDA_BASE_URL = "http://www-rccn.icrr.u-tokyo.ac.jp/mhonda/public/nflx2014"
+const CHENG_BASE_URL = "https://raw.githubusercontent.com/JIECheng2021/atm_nu_flux_data/main"
+         
+# ============================================================================
+# Valid ranges of each model's tables
+# ============================================================================
+
+const HONDA_E_RANGE    = (0.1, 1.0e4)
+const HONDA_COSθ_RANGE = (-1.0, 1.0)
+
+const CHENG_E_RANGE    = (0.01, 1.0e4)
+const CHENG_COSθ_RANGE = (-1.0, 1.0)
+
+# Associate to each model the corresponding energy and angular ranges.
+const MODEL_2_RANGETYPE = Dict{Symbol, NTuple{2, NTuple{2, Float64}}}(
+    :Honda      => (HONDA_E_RANGE, HONDA_COSθ_RANGE),
+    :Cheng      => (CHENG_E_RANGE, CHENG_COSθ_RANGE),
+)
