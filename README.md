@@ -20,4 +20,11 @@ This repository gathers subsequent code and studies I developed for this purpose
 | [`ForwardModel/`](ForwardModel/) | Core components of the neutrino forward model. They are coded and tested individually here before being integrated into the architecture of the [Flexopt](https://github.com/seismobassoon/flexOPT.jl) framework. |
 | [`BinsStudy/`](BinsStudy/) | Study of the binning scheme for neutrino data. |
 
-
+## Collaboration
+ 
+This is an interdisciplinary effort between:
+ 
+- **Institut de Physique du Globe de Paris (IPGP):** Nobuaki Fuji and myself
+- **AstroParticule et Cosmologie (APC), Paris:** Véronique Van Elewyck and João A. B. Coelho
+- **Laboratoire de Géologie de Lyon (LGL-TPE):** Stéphanie Durand
+- **University of Idaho:** Yael Deniz and Eric Mittelstaedt
