@@ -117,8 +117,12 @@ function _update_parameters(params::ParamsType; kwargs...) where {ParamsType<:Ne
 
     # Convert the struct into a NamedTuple...
     current_params = NamedTuple{names}(ntuple(i -> getfield(params, i), length(names)))
+
+    # Convert the given values to the types the fields expect (e.g. "juno" → :juno).
+    normalized_kwargs = (; (k => _normalize_choice(fieldtype(ParamsType, k), v) for (k, v) in pairs(kwargs))...)
+
     # ... so that it can be merged with the given keyword arguments.
-    return ParamsType(; merge(current_params, NamedTuple(kwargs))...)
+    return ParamsType(; merge(current_params, normalized_kwargs)...)
 end
 
 """
@@ -239,21 +243,21 @@ function _validate_neutrino_flux_model(model::Symbol)
 end
 
 function _validate_parameters(p::HondaParameters)
-    haskey(LOCATION_MAPPING_H,  Symbol(lowercase(String(p.location)))) ||
+    haskey(LOCATION_MAPPING_H, p.location) ||
         throw(ArgumentError("Unsupported Honda location $(repr(p.location)). Valid: $(collect(keys(LOCATION_MAPPING_H)))."))
-    haskey(SEASON_MAPPING, Symbol(lowercase(String(p.season)))) ||
+    haskey(SEASON_MAPPING, p.season) ||
         throw(ArgumentError("Unsupported Honda season $(repr(p.season)). Valid: $(collect(keys(SEASON_MAPPING)))."))
-    haskey(ANGLES_MAPPING, Symbol(lowercase(String(p.angles_separation)))) ||
+    haskey(ANGLES_MAPPING, p.angles_separation) ||
         throw(ArgumentError("Unsupported Honda angular separation $(repr(p.angles_separation)). Valid: $(collect(keys(ANGLES_MAPPING)))."))
-    haskey(SOLAR_MAPPING, Symbol(lowercase(String(p.solar_activity)))) ||
+    haskey(SOLAR_MAPPING, p.solar_activity) ||
         throw(ArgumentError("Unsupported Honda solar activity $(repr(p.solar_activity)). Valid: $(collect(keys(SOLAR_MAPPING)))."))
-    haskey(MOUNTAIN_MAPPING, Symbol(lowercase(String(p.mountain_overburden)))) ||
+    haskey(MOUNTAIN_MAPPING, p.mountain_overburden) ||
         throw(ArgumentError("Unsupported Honda mountain overburden $(repr(p.mountain_overburden)). Valid: $(collect(keys(MOUNTAIN_MAPPING)))."))
     return p
 end
 
 function _validate_parameters(p::DaemonfluxParameters)
-    Symbol(lowercase(String(p.flux_mode))) in DAEMONFLUX_ALLOWED_FLUX_MODES ||
+    p.flux_mode in DAEMONFLUX_ALLOWED_FLUX_MODES ||
         throw(ArgumentError("Unsupported Daemonflux mode $(repr(p.flux_mode)). Valid: $(collect(DAEMONFLUX_ALLOWED_FLUX_MODES))."))
     if !isnothing(p.params_df)
        bad_keys = [k for k in keys(p.params_df) if k ∉ DAEMONFLUX_ALLOWED_KEYS]
@@ -263,18 +267,40 @@ function _validate_parameters(p::DaemonfluxParameters)
 end
 
 function _validate_parameters(p::ChengParameters)
-    haskey(LOCATION_MAPPING_C, Symbol(lowercase(String(p.location)))) ||
+    haskey(LOCATION_MAPPING_C, p.location) ||
         throw(ArgumentError("Unsupported Cheng location $(repr(p.location)). Valid: $(collect(keys(LOCATION_MAPPING_C)))."))
-    haskey(SEASON_MAPPING, Symbol(lowercase(String(p.season)))) ||
+    haskey(SEASON_MAPPING, p.season) ||
         throw(ArgumentError("Unsupported Cheng season $(repr(p.season)). Valid: $(collect(keys(SEASON_MAPPING)))."))
-    haskey(ANGLES_MAPPING, Symbol(lowercase(String(p.angles_separation)))) ||
+    haskey(ANGLES_MAPPING, p.angles_separation) ||
         throw(ArgumentError("Unsupported Cheng angular separation $(repr(p.angles_separation)). Valid: $(collect(keys(ANGLES_MAPPING)))."))
-    haskey(SOLAR_MAPPING, Symbol(lowercase(String(p.solar_activity)))) ||
+    haskey(SOLAR_MAPPING, p.solar_activity) ||
         throw(ArgumentError("Unsupported Cheng solar activity $(repr(p.solar_activity)). Valid: $(collect(keys(SOLAR_MAPPING)))."))
-    haskey(MUON_PROPA_MAPPING, Symbol(lowercase(String(p.muon_propa_earth)))) ||
+    haskey(MUON_PROPA_MAPPING, p.muon_propa_earth) ||
         throw(ArgumentError("Unsupported Cheng muon propagation $(repr(p.mountain_overburden)). Valid: $(collect(keys(MUON_PROPA_MAPPING)))."))
     return p
 end
+
+"""
+    _normalize_choice(T, value)
+
+Convert a user-supplied `value` to the type `T` expected by a parameter field,
+so that strings can be used in place of symbols, booleans, or dictionary keys.
+"""
+function _normalize_choice end
+
+# Symbol fields: accept String or Symbol.
+_normalize_choice(::Type{Symbol}, v::Union{AbstractString, Symbol}) =
+    Symbol(lowercase(String(v)))
+
+# Bool fields: accept "true" / "false" and similar, or Symbol.
+_normalize_choice(::Type{Bool}, v::Union{AbstractString, Symbol}) = parse(Bool, lowercase(String(v)))
+
+# Dictionary values (e.g. params_df): make the keys Strings.
+_normalize_choice(::Any, v::AbstractDict) =
+    Dict{String, Any}(string(k) => x for (k, x) in v)
+
+# Everything else is left as it is.
+_normalize_choice(::Any, v) = v
 
 # ============================================================================
 # Base urls of the different neutrino flux models
