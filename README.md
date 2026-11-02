@@ -16,9 +16,9 @@ This repository gathers subsequent code and studies I developed for this purpose
  
 | Folder | Contents |
 |---|---|
-| [`NeutrinoInversion/`](NeutrinoInversion/) | Inversion approaches using neutrino data alone, with successively more advanced models, and tests on synthetic neutrino data. |
-| [`ForwardModel/`](ForwardModel/) | Core components of the neutrino forward model. They are coded and tested individually here before being integrated into the architecture of the [Flexopt](https://github.com/seismobassoon/flexOPT.jl) framework. |
 | [`BinsStudy/`](BinsStudy/) | Study of the binning scheme for neutrino data. |
+| [`ForwardModel/`](ForwardModel/) | Core components of the neutrino forward model. They are coded and tested individually here before being integrated into the architecture of the [Flexopt](https://github.com/seismobassoon/flexOPT.jl) framework. |
+| [`NeutrinoInversion/`](NeutrinoInversion/) | Inversion approaches using neutrino data alone, with successively more advanced models, and tests on synthetic neutrino data. |
 
 ## Collaboration
  
