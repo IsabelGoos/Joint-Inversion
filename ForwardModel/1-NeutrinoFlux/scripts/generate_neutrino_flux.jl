@@ -45,7 +45,7 @@ function produce_neutrino_flux(user_params::Dict{String, Any})
 
     # Pick the model and parameter set.
     if haskey(user_params, "model")
-        model  = _validate_neutrino_flux_model(user_params["model"])
+        model  = _validate_neutrino_flux_model(Symbol(user_params["model"]))
         params = MODEL_2_PARAMSTYPE[model]()      
     else
         model  = DEFAULT_NUFLUX_MODEL[]
