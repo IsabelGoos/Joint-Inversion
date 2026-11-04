@@ -216,10 +216,8 @@ function _produce_daemonflux_neutrino_flux(nuflux_params::Dict{String, Any})
     return_uncertainties = nuflux_params["return_uncertainties"]
 
     # Import and instantiate Python daemonflux class.
-    daemonflux = pyimport("daemonflux")
-    nuflux = daemonflux.Flux(location="IceCube", 
-                             use_calibration=true, 
-                             debug=1)
+    pythoncall = _require_pythoncall()
+    nuflux = _get_daemonflux_instance(pythoncall)
 
     # Convert to degrees, as needed by daemonflux.
     θ_new = string.(rad2deg.(acos.(cosθ_new)))
@@ -570,3 +568,41 @@ const _PYTHONCALL_PKGID = Base.PkgId(
 
 # Load PythonCall on first call and return the module (cheap afterwards).
 _require_pythoncall() = Base.require(_PYTHONCALL_PKGID)
+
+"""
+    _get_daemonflux_instance(pythoncall::Module; retries=3, retry_delay=2)
+
+Create and return the Python `daemonflux.Flux` object for IceCube, using the `pythoncall` module. 
+"""
+function _get_daemonflux_instance(
+    pythoncall::Module;
+    retries::Integer=3,
+    retry_delay::Real=2,
+)
+    retries >= 1 || throw(ArgumentError("`retries` must be at least 1."))
+    daemonflux = pythoncall.pyimport("daemonflux")
+    for attempt in 1:retries
+        try
+            return daemonflux.Flux(
+                location="IceCube",
+                use_calibration=true,
+                debug=1,
+            )
+        catch error_pc
+            if attempt == retries
+                message = sprint(showerror, error_pc)
+                throw(ErrorException(
+                    "Daemonflux could not initialize after $retries attempts. " *
+                    "Its official GitHub release may be temporarily unreachable. " *
+                    "Check access to github repository, " *
+                    "call `prefetch_daemonflux_data!()` or retry the computation.\n" *
+                    "Last Python error:\n$message",
+                ))
+            end
+            sleep(retry_delay * 2.0^(attempt - 1))
+        end
+    end
+    error("Daemonflux unreachable.")
+end
+
+
