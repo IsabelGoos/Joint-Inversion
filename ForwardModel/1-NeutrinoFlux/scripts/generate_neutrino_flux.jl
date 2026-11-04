@@ -64,6 +64,7 @@ function produce_neutrino_flux(user_params::Dict{String, Any})
     )
     nuflux_params["model"]              = model
     nuflux_params["bin_centers_arrays"] = user_params["bin_centers_arrays"]
+    return_uncertainties                = user_params["return_uncertainties"]
 
     for (key, value) in nuflux_params
         println(key, " => ", value)
@@ -90,6 +91,14 @@ function produce_neutrino_flux(user_params::Dict{String, Any})
         nuflux_new["Energies"] = collect(bins_new[1])
         nuflux_new["cosθs"]    = collect(bins_new[2])
 
+        # Now that interpolation has been done, uncertainties can be included.
+        if return_uncertainties
+            rel_err = map(E -> E < 10.0 ? 0.07 : (E <= 100.0 ? 0.14 : 0.25), nuflux_new["Energies"])
+            for (key, key_err) in zip(FLUX_KEYS, FLUX_ERRS_KEYS)
+                nuflux_new[key_err] = nuflux_new[key] .* rel_err
+            end
+        end
+
         nuflux = nuflux_new
     end
 
@@ -110,6 +119,7 @@ function _produce_honda_neutrino_flux(nuflux_params::Dict{String, Any})
     # Read parameters and build url from where to fetch the data.
     url_honda  = _build_flux_url(nuflux_params)
     angles_sep = nuflux_params["angles_separation"]
+    return_uncertainties = nuflux_params["return_uncertainties"]
     
     # Download.
     decompressed_stream = download_nuflux(url_honda)
