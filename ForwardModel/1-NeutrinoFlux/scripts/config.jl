@@ -22,6 +22,7 @@ Base.@kwdef struct HondaParameters <: NeutrinoFluxParameters
     angles_separation::Symbol   = :averaged_ϕ
     solar_activity::Symbol      = :minimum
     mountain_overburden::Symbol = :without
+    return_uncertainties::Bool  = false
 end
 
 """
@@ -41,11 +42,12 @@ end
 Parameters specific to the Cheng atmospheric neutrino flux model tables.
 """
 Base.@kwdef struct ChengParameters <: NeutrinoFluxParameters
-    location::Symbol          = :orca
-    season::Symbol            = :all_year
-    angles_separation::Symbol = :averaged_ϕ
-    solar_activity::Symbol    = :minimum
-    muon_propa_earth::Symbol  = :with 
+    location::Symbol           = :orca
+    season::Symbol             = :all_year
+    angles_separation::Symbol  = :averaged_ϕ
+    solar_activity::Symbol     = :minimum
+    muon_propa_earth::Symbol   = :with 
+    return_uncertainties::Bool = false
 end
 
 # Associate to each model the corresponding parameter set subtype.
@@ -231,7 +233,8 @@ const DAEMONFLUX_ALLOWED_KEYS = Set{String}([
     "GSF_1", "GSF_2", "GSF_3", "GSF_4", "GSF_5", "GSF_6",
 ])
 
-const FLUX_KEYS = ("NuMu_flux", "Nue_flux", "AntiNuMu_flux", "AntiNue_flux")
+const FLUX_KEYS      = ("NuMu_flux",     "Nue_flux",     "AntiNuMu_flux",     "AntiNue_flux")
+const FLUX_ERRS_KEYS = ("NuMu_flux_err", "Nue_flux_err", "AntiNuMu_flux_err", "AntiNue_flux_err")
 
 # ============================================================================
 # Validation methods
