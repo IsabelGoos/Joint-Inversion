@@ -4,7 +4,6 @@ using Downloads
 using CodecZlib
 using DelimitedFiles
 using Interpolations: linear_interpolation, Flat, extrapolate, interpolate, FritschCarlsonMonotonicInterpolation
-using PythonCall
 
 # ============================================================================
 # Main function
@@ -559,4 +558,15 @@ function _check_bins_in_range(E_new, cosθ_new, E_range, cosθ_range; rtol=1e-8)
     return nothing
 end
 
+# ============================================================================
+# Python call
+# ============================================================================
 
+# Identifier of the PythonCall package.
+const _PYTHONCALL_PKGID = Base.PkgId(
+    Base.UUID("6099a3de-0909-46bc-b1f4-468b9a2dfc0d"),
+    "PythonCall",
+)
+
+# Load PythonCall on first call and return the module (cheap afterwards).
+_require_pythoncall() = Base.require(_PYTHONCALL_PKGID)
