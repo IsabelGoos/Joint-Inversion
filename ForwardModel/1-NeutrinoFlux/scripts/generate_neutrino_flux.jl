@@ -3,7 +3,7 @@ include("config.jl")
 using Downloads
 using CodecZlib
 using DelimitedFiles
-using Interpolations: linear_interpolation, Flat
+using Interpolations: linear_interpolation, Flat, extrapolate, interpolate, FritschCarlsonMonotonicInterpolation
 using PythonCall
 
 # ============================================================================
@@ -64,7 +64,7 @@ function produce_neutrino_flux(user_params::Dict{String, Any})
     )
     nuflux_params["model"]              = model
     nuflux_params["bin_centers_arrays"] = user_params["bin_centers_arrays"]
-    return_uncertainties                = user_params["return_uncertainties"]
+    return_uncertainties                = nuflux_params["return_uncertainties"]
 
     for (key, value) in nuflux_params
         println(key, " => ", value)
@@ -93,10 +93,49 @@ function produce_neutrino_flux(user_params::Dict{String, Any})
 
         # Now that interpolation has been done, uncertainties can be included.
         if return_uncertainties
-            rel_err = map(E -> E < 10.0 ? 0.07 : (E <= 100.0 ? 0.14 : 0.25), nuflux_new["Energies"])
-            for (key, key_err) in zip(FLUX_KEYS, FLUX_ERRS_KEYS)
-                nuflux_new[key_err] = nuflux_new[key] .* rel_err
+
+            if model === :Honda
+                rel_err = map(E -> E < 10.0 ? 0.07 : (E <= 100.0 ? 0.14 : 0.25), nuflux_new["Energies"])
+                for (key, key_err) in zip(FLUX_KEYS, FLUX_ERRS_KEYS)
+                    nuflux_new[key_err] = nuflux_new[key] .* rel_err
+                end
             end
+
+            if model === :Cheng
+                E_new    = nuflux_new["Energies"]
+                cosθ_new = nuflux_new["cosθs"]
+
+                E_pts = [0.35, 0.6, 1.0, 2.0, 5.0, 10.0, 30.0, 50.0, 100.0]
+                #                           0.35   0.6    1      2      5     10     30     50    100
+                errs_vert = Dict(
+                    "NuMu_flux_err"     => [0.175, 0.095, 0.058, 0.052, 0.072, 0.090, 0.115, 0.140, 0.180],
+                    "Nue_flux_err"      => [0.225, 0.120, 0.075, 0.050, 0.035, 0.042, 0.075, 0.115, 0.225],
+                    "AntiNuMu_flux_err" => [0.170, 0.090, 0.060, 0.043, 0.038, 0.047, 0.065, 0.075, 0.100],
+                    "AntiNue_flux_err"  => [0.225, 0.120, 0.080, 0.055, 0.042, 0.050, 0.085, 0.125, 0.275],
+                )
+                errs_hor = Dict(
+                    "Nue_flux_err"      => [0.280, 0.130, 0.072, 0.045, 0.030, 0.022, 0.020, 0.020, 0.020],
+                    "NuMu_flux_err"     => [0.200, 0.100, 0.057, 0.048, 0.047, 0.048, 0.054, 0.058, 0.066],
+                    "AntiNuMu_flux_err" => [0.200, 0.100, 0.058, 0.038, 0.030, 0.027, 0.030, 0.033, 0.037],
+                    "AntiNue_flux_err"  => [0.270, 0.130, 0.072, 0.048, 0.032, 0.022, 0.020, 0.020, 0.020],
+                )
+                w = abs.(cosθ_new)'
+
+                for key in FLUX_KEYS
+                    itp_v = extrapolate(interpolate(log10.(E_pts), errs_vert[key * "_err"], FritschCarlsonMonotonicInterpolation()), Flat())
+                    itp_h = extrapolate(interpolate(log10.(E_pts), errs_hor[key * "_err"],  FritschCarlsonMonotonicInterpolation()), Flat())
+
+                    errs_v = itp_v.(log10.(E_new))    
+                    errs_h = itp_h.(log10.(E_new))
+
+                    # Linear interpolation wrt angle.
+                    rel_err = errs_h .+ (errs_v .- errs_h) .* w    
+
+                    nuflux_new[key * "_err"] = nuflux_new[key] .* rel_err
+                end
+
+            end
+
         end
 
         nuflux = nuflux_new
