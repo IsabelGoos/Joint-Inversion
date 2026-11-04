@@ -147,6 +147,10 @@ end
 # Individual functions for each neutrino flux model
 # ============================================================================
 
+# ============================================================================
+# Honda model
+# ============================================================================
+
 """
     _produce_honda_neutrino_flux(nuflux_params::Dict{String, Any})
 
@@ -202,6 +206,10 @@ function _produce_honda_neutrino_flux(nuflux_params::Dict{String, Any})
 
     return results
 end
+
+# ============================================================================
+# Daemonflux model
+# ============================================================================
 
 """
     _produce_daemonflux_neutrino_flux(nuflux_params::Dict{String, Any})
@@ -341,6 +349,81 @@ function _set_dflux_params(flux_obj, params_df_dict::Union{Nothing, Dict{String,
     return full_params
 
 end
+
+"""
+    get_dflux_param_value(flux_obj, param_name, signed_sigma; max_iterations=10000, max_param=10.0, tol=0.01)
+
+Find the value of the parameter `param_name` which is `signed_sigma` away from the default value.
+
+# Arguments
+- `flux_obj`: A Python object representing a Daemonflux instance.
+- `param_name`: The name of the parameter (see the set_dflux_params function for possible parameter names).
+- `signed_sigma`
+- `max_iterations`: The maximum number of iterations in the Bisection method.
+- `max_param`: The maximum search limit for the absolute value of the parameter value.
+- `tol`: The relative tolerance on the target distance from the default value.
+"""
+function get_dflux_param_value(
+    flux_obj,
+    param_name::String,
+    signed_sigma::Real;
+    max_iterations::Int=10000,
+    max_param::Real=10.0,
+    tol::Real=0.01,
+)
+
+    # Determine the sign of the parameter based on if it should be above or below the default value.
+    p_sign = sign(signed_sigma)
+    # flux_obj.chi2 is symmetric and positive, the search is performed on the positive axis.
+    sigma = abs(signed_sigma)
+
+    # Define the starting search bounds.
+    p_low  = 0.
+    p_high = max_param
+
+    # Evaluate the function at the upper boundary to ensure a root exists.
+    pythoncall = _require_pythoncall()
+    chi2_high = pythoncall.pyconvert(
+        Float64,
+        flux_obj.chi2(params=Dict(param_name => p_high)),
+    )
+    diff_high = sqrt(chi2_high) - sigma
+    # If the target is out of bounds, fail immediately.
+    if diff_high < 0.0
+        error("Target sigma ($signed_sigma) is outside the search bounds. At p = $max_param, chi2 is only $chi2_high. Increase `max_param`.")
+    end
+
+    # Run bisection search.
+    for i in 1:max_iterations
+
+        p_mid = (p_low + p_high) / 2
+        chi2_mid = pythoncall.pyconvert(
+            Float64,
+            flux_obj.chi2(params=Dict(param_name => p_mid)),
+        )
+        sigma_diff = sqrt(chi2_mid) - sigma
+
+        # Check if we are within the relative tolerance threshold
+        if abs(sigma_diff) <= tol * sigma
+            return p_sign * p_mid  
+        end
+
+        # Adjust search bounds
+        if sigma_diff < 0.0 
+            p_low = p_mid
+        else
+            p_high = p_mid
+        end
+
+    end
+
+    error("Bisection method failed to converge within $max_iterations iterations. Check your parameters.")
+
+end
+
+# ============================================================================
+# Cheng model
+# ============================================================================
 
 """
     _produce_cheng_neutrino_flux(nuflux_params::Dict{String, Any})
@@ -595,7 +678,7 @@ function _get_daemonflux_instance(
                     "Daemonflux could not initialize after $retries attempts. " *
                     "Its official GitHub release may be temporarily unreachable. " *
                     "Check access to github repository, " *
-                    "call `prefetch_daemonflux_data!()` or retry the computation.\n" *
+                    "and retry the computation.\n" *
                     "Last Python error:\n$message",
                 ))
             end
@@ -604,5 +687,3 @@ function _get_daemonflux_instance(
     end
     error("Daemonflux unreachable.")
 end
-
-
