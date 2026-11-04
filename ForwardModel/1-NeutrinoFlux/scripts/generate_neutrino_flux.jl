@@ -292,6 +292,10 @@ function _produce_daemonflux_neutrino_flux(nuflux_params::Dict{String, Any})
         results["AntiNuMu_flux_err"] = AntiNuMu_flux_err
         results["AntiNue_flux_err"]  = AntiNue_flux_err
     end
+
+    results["Energies"] = E_new
+    results["cosθs"]    = cosθ_new
+
     return results
 
 end
@@ -357,9 +361,9 @@ Find the value of the parameter `param_name` which is `signed_sigma` away from t
 
 # Arguments
 - `flux_obj`: A Python object representing a Daemonflux instance.
-- `param_name`: The name of the parameter (see the set_dflux_params function for possible parameter names).
-- `signed_sigma`
-- `max_iterations`: The maximum number of iterations in the Bisection method.
+- `param_name`: The name of the parameter.
+- `signed_sigma`: Amount of sigmas you want to be away from the default value, up or down.
+- `max_iterations`: The maximum number of iterations in the bisection method.
 - `max_param`: The maximum search limit for the absolute value of the parameter value.
 - `tol`: The relative tolerance on the target distance from the default value.
 """
