@@ -8,7 +8,7 @@ The model is structured around four successive components:
 
 <p align="center">
   <a href="images/NOTE.pdf">
-    View the forward model of NOTE (PDF)
+    <img src="images/NOTE.png" width="750" alt="Forward model of NOTE">
   </a>
 </p>
 
