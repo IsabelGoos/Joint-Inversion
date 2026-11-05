@@ -20,7 +20,6 @@ The model is structured around four successive components:
 
 - **Neutrino Detection:** The final component models the detector response, accounting for detection efficiency and measurement resolution to predict the *observed* or *detected neutrino events*.
 
-
-
+Note: In the figure, neutrino interactions and detection are represented as a single component, since both processes take place within the detector.
 
 
