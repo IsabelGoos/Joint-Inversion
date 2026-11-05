@@ -7,7 +7,7 @@ This folder contains the components of the forward model used to simulate neutri
 The model is structured around four successive components:
 
 <p align="center">
-  <img src="images/neutrino_forward_model.png" width="750" alt="Atmospheric neutrino forward model illustrating neutrino flux, oscillations through Earth, and detection">
+  <img src="images/NOTE.pdf" width="750" alt="Atmospheric neutrino forward model illustrating neutrino flux, oscillations through Earth, and detection">
 </p>
 
 - **Atmospheric Neutrino Flux:** Cosmic rays interact with Earth's atmosphere, producing showers of secondary particles, including neutrinos. This component describes the initial atmospheric neutrino flux.
