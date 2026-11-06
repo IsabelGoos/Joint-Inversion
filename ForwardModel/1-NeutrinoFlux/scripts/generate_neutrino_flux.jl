@@ -80,14 +80,24 @@ function produce_neutrino_flux(user_params::Dict{String, Any})
     end
 
     # Interpolate if the models are Honda or Cheng.
-    if model in (:Honda, :Cheng) && angles_separation !== :variable_ϕ
+    if model in (:Honda, :Cheng)  
         E_orig    = nuflux["Energies"]
         cosθ_orig = nuflux["cosθs"]
         bins_new  = user_params["bin_centers_arrays"]
-        nuflux_new = Dict{String, Any}( 
-            key => _get_interpolated_flux(nuflux[key], E_orig, cosθ_orig, model, bins_new)
-            for key in FLUX_KEYS
-        )
+        if angles_separation === :averaged_ϕ
+            nuflux_new = Dict{String, Any}( 
+                key => _get_interpolated_flux(nuflux[key], E_orig, cosθ_orig, model, bins_new)
+                for key in FLUX_KEYS
+            )
+        end
+        if angles_separation === :variable_ϕ
+            ϕ_orig = nuflux["ϕs"]
+            nuflux_new = Dict{String, Any}( 
+                key => _get_interpolated_flux(nuflux[key], E_orig, cosθ_orig, ϕ_orig, model, bins_new)
+                for key in FLUX_KEYS
+            )
+            nuflux_new["ϕs"]    = collect(bins_new[3])
+        end
         nuflux_new["Energies"] = collect(bins_new[1])
         nuflux_new["cosθs"]    = collect(bins_new[2])
 
@@ -624,6 +634,42 @@ function _get_interpolated_flux(Phi_orig::AbstractMatrix{<:Real},
 
     # Evaluate on the new grid and go back from log(Phi) to Phi.
     Phi_new = [exp(itp(log(E), cosθ)) for E in E_new, cosθ in cosθ_new]
+    return Phi_new
+end
+
+function _get_interpolated_flux(Phi_orig::AbstractArray{<:Real, 3},
+                                E_orig::AbstractVector{<:Real},
+                                cosθ_orig::AbstractVector{<:Real},
+                                ϕ_orig::AbstractVector{<:Real},        
+                                model::Symbol,
+                                bin_centers_arrays::NTuple{3, AbstractVector{<:Real}})
+
+    # Check if the new bin centers are within the allowed range.
+    E_range, cosθ_range    = MODEL_2_RANGETYPE[model]
+    E_new, cosθ_new, ϕ_new = bin_centers_arrays
+    _check_bins_in_range(E_new, cosθ_new, E_range, cosθ_range)
+
+    # The interpolation nodes must be in ascending order.
+    ocosθ     = sortperm(cosθ_orig)
+    oϕ        = sortperm(ϕ_orig)
+    cosθ_orig = cosθ_orig[ocosθ]
+    ϕ_orig    = ϕ_orig[oϕ]
+    Phi_orig  = Phi_orig[:, ocosθ, oϕ]
+
+    # ϕ is periodic (360°): pad one bin on each side so that interpolation
+    # between the last and first bin wraps around instead of being flat.
+    ϕ_ext   = vcat(ϕ_orig[end] - 360, ϕ_orig, ϕ_orig[1] + 360)
+    Phi_ext = cat(Phi_orig[:, :, end:end], Phi_orig, Phi_orig[:, :, 1:1]; dims = 3)
+
+    # Interpolate in log-log space for energy and flux, linearly in cosθ and ϕ.
+    logE_orig   = log.(E_orig)
+    logPhi_ext  = log.(Phi_ext)
+    itp = linear_interpolation((logE_orig, cosθ_orig, ϕ_ext), logPhi_ext;
+                               extrapolation_bc = Flat())
+
+    # Evaluate on the new grid (ϕ wrapped into [0, 360)) and go back to Phi.
+    Phi_new = [exp(itp(log(E), c, mod(p, 360.0)))
+               for E in E_new, c in cosθ_new, p in ϕ_new]
     return Phi_new
 end
 
