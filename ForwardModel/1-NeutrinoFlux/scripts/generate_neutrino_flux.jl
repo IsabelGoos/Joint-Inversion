@@ -64,6 +64,7 @@ function produce_neutrino_flux(user_params::Dict{String, Any})
     nuflux_params["model"]              = model
     nuflux_params["bin_centers_arrays"] = user_params["bin_centers_arrays"]
     return_uncertainties                = nuflux_params["return_uncertainties"]
+    angles_separation                   = nuflux_params["angles_separation"]
 
     for (key, value) in nuflux_params
         println(key, " => ", value)
@@ -79,7 +80,7 @@ function produce_neutrino_flux(user_params::Dict{String, Any})
     end
 
     # Interpolate if the models are Honda or Cheng.
-    if model in (:Honda, :Cheng)
+    if model in (:Honda, :Cheng) && angles_separation !== :variable_ϕ
         E_orig    = nuflux["Energies"]
         cosθ_orig = nuflux["cosθs"]
         bins_new  = user_params["bin_centers_arrays"]
@@ -189,7 +190,7 @@ function _produce_honda_neutrino_flux(nuflux_params::Dict{String, Any})
             "AntiNuMu_flux" => collect(flux_reshaped[:, :, 3]),
             "AntiNue_flux"  => collect(flux_reshaped[:, :, 5]),
             "Energies"      => flux_reshaped[:, 1, 1],
-            "cosθs"         => range(-1.0, 1.0, length=n_cosθ)
+            "cosθs"         => range(-1.0, .9, length=n_cosθ).+0.05
         )
 
     elseif angles_sep === :variable_ϕ
@@ -466,12 +467,28 @@ function _produce_cheng_neutrino_flux(nuflux_params::Dict{String, Any})
             "AntiNuMu_flux" => collect(flux_reshaped[:, :, 3]),
             "AntiNue_flux"  => collect(flux_reshaped[:, :, 5]),
             "Energies"      => flux_reshaped[:, 1, 1],
-            "cosθs"         => range(-1.0, 1.0, length=n_cosθ)
+            "cosθs"         => range(-1.0, .9, length=n_cosθ).+0.05
         )
 
     elseif angles_sep === :variable_ϕ
-        # TODO: Implement the reshaping logic for the azimuth-dependent grid
-        error("angles_separation_hf mode :variable_ϕ is not yet implemented.")
+
+        n_E    = 121
+        n_cosθ = 20
+        n_ϕ    = 12
+
+        A = reshape(matrix_2d, n_E, n_ϕ, n_cosθ, 5)   
+        A = A[:, :, end:-1:1, :]                     
+        A = permutedims(A, (1, 3, 2, 4))              
+
+        results = Dict{String, Any}(
+            "NuMu_flux"     => collect(A[:, :, :, 2]),
+            "Nue_flux"      => collect(A[:, :, :, 4]),
+            "AntiNuMu_flux" => collect(A[:, :, :, 3]),
+            "AntiNue_flux"  => collect(A[:, :, :, 5]),
+            "Energies"      => A[:, 1, 1, 1],
+            "cosθs"         => range(-1.0, .9, length=n_cosθ) .+0.05,
+            "ϕs"            => range(0, 330.0, length=n_ϕ) .+15.
+        )
 
     elseif angles_sep === :averaged_ϕθ
         # TODO: Implement the reshaping logic for the fully integrated/averaged grid
