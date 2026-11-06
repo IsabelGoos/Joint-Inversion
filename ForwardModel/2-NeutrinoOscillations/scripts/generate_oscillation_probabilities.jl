@@ -1,11 +1,11 @@
 module Neutrino_Oscillations
 export set_oscillation_parameters, produce_neutrino_oscillation_probabilities
 
-const FLEXOPT_DIR = "/Users/igoos/Desktop/projects/flexOPT" # TO-DO: adapt this path to FlexOPT
+const FLEXOPT_DIR = "/Users/igoos/Desktop/projects/flexOPTadapted" # TO-DO: adapt this path to FlexOPT
 include(joinpath(FLEXOPT_DIR, "src", "Neurthino.jl"))
 using .Neurthino
 include(joinpath(FLEXOPT_DIR, "src", "NeurthinoBack", "Matter.jl"))
-include(joinpath(FLEXOPT_DIR, "src", "NeurthinoBack", "premFunctions.jl"))
+# include(joinpath(FLEXOPT_DIR, "src", "NeurthinoBack", "premFunctions.jl"))
 using Interpolations
 ParamFile = "../config/testparam.csv" # TO-DO: adapt this path, in case it changes 
 include("generate_earth_model.jl")
