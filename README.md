@@ -8,17 +8,17 @@ The Earth's deep interior still holds many mysteries. Seismic imaging has reveal
 
 Because **electron density** depends on both mass density and chemical composition, neutrino observations offer a sensitivity to the deep Earth that is fundamentally different from seismic waves. 
 
-Our paper, [Sensitivity of neutrino oscillations to the Earth’s interior properties](https://www.sciencedirect.com/science/article/pii/S0012821X26005340) (Isabel A. Goos, Nobuaki Fuji, Stéphanie Durand, Yael Deniz Véronique Van Elewyck, João A. B. Coelho, Eric Mittelstaedt), establishes the theoretical framework needed to include neutrino oscillation measurements in a future joint inversion with seismic data. 
+Our paper, [Sensitivity of neutrino oscillations to the Earth’s interior properties](https://www.sciencedirect.com/science/article/pii/S0012821X26005340) (Isabel A. Goos, Nobuaki Fuji, Stéphanie Durand, Yael Deniz, Véronique Van Elewyck, João A. B. Coelho, Eric Mittelstaedt), lays the theoretical and methodological groundwork for incorporating neutrino oscillation measurements into a future joint inversion with seismic data. On the one hand, it provides a thorough description of the forward modelling of neutrino event rates (see the README.md in the ForwardModel folder for more details). On the other, we present the first computation of the relevant Fréchet derivatives, which are essential for inversion schemes based on a linearization of the forward problem. 
 
 ## Repository Overview
  
-This repository gathers subsequent code and studies I developed for this purpose. Each folder has its own `README.md` with more detail.
+This repository gathers subsequent code and studies I developed for this purpose. Each folder has its own `README.md` with more details.
  
 | Folder | Contents |
 |---|---|
 | [`BinsStudy/`](BinsStudy/) | Study of the binning scheme for neutrino data. |
 | [`ForwardModel/`](ForwardModel/) | Core components of the neutrino forward model. They are coded and tested individually here before being integrated into the architecture of the [Flexopt](https://github.com/seismobassoon/flexOPT.jl) framework. |
-| [`NeutrinoInversion/`](NeutrinoInversion/) | Inversion approaches using neutrino data alone, with successively more advanced models, and tests on synthetic neutrino data. |
+| [`NeutrinoInversion/`](NeutrinoInversion/) | Inversion approaches using synthetic neutrino data alone, with successively more advanced methods. |
 
 ## Collaboration
  
