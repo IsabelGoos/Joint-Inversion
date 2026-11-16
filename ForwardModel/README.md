@@ -12,14 +12,14 @@ The model is structured around four successive components:
   </a>
 </p>
 
-- **Atmospheric Neutrino Flux:** Cosmic rays interact with Earth's atmosphere, producing showers of secondary particles, including neutrinos. This component describes the initial atmospheric neutrino flux.
+- **Atmospheric Neutrino Flux:** Cosmic rays interact with the Earth's atmosphere, producing showers of secondary particles, including neutrinos. This component describes the initial atmospheric neutrino flux.
 
-- **Neutrino Oscillations:** As neutrinos propagate through Earth, the electron density along their trajectories influences their oscillation probabilities. This component models neutrino oscillations for a given Earth density profile.
+- **Neutrino Oscillations:** As neutrinos propagate through the Earth, the electron density along their trajectories influences their oscillation probabilities. This component models neutrino oscillations for a given Earth electron-density profile.
 
-- **Neutrino Interactions:** This component models neutrino interactions in the detector material to predict the rates of *interacting neutrino events*.
+- **Neutrino Interactions:** The vast majority of atmospheric neutrinos pass through the detector without leaving a trace. This component models the interactions of the tiny fraction of neutrinos that do interact with the detector material, thereby predicting the rates of *interacting neutrino events*.
 
 - **Neutrino Detection:** The final component models the detector response, accounting for detection efficiency and measurement resolution to predict the *observed* or *detected neutrino events*.
 
-Note: In the figure, neutrino interactions and detection are represented as a single component, since both processes take place within the detector.
+Clarification: In the figure, neutrino interactions and detection are represented as a single component, since both processes take place within the detector.
 
 
