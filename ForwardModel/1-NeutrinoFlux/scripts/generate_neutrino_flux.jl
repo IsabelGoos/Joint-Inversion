@@ -44,7 +44,7 @@ function produce_neutrino_flux(user_params::Dict{String, Any})
 
     # Pick the model and parameter set.
     if haskey(user_params, "model")
-        model  = _validate_neutrino_flux_model(Symbol(user_params["model"]))
+        model  = _validate_neutrino_flux_model(Symbol(uppercasefirst(lowercase(string(user_params["model"])))))
         params = MODEL_2_PARAMSTYPE[model]()      
     else
         model  = DEFAULT_NUFLUX_MODEL[]
@@ -63,6 +63,7 @@ function produce_neutrino_flux(user_params::Dict{String, Any})
     )
     nuflux_params["model"]              = model
     nuflux_params["bin_centers_arrays"] = user_params["bin_centers_arrays"]
+    
     return_uncertainties                = nuflux_params["return_uncertainties"]
     angles_separation                   = nuflux_params["angles_separation"]
 
